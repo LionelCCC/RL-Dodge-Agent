@@ -16,8 +16,13 @@ PROJECTILE_RADIUS = 5
 AGENT_SPEED = 5.0       # units per step
 PROJECTILE_SPEED = 4.0  # units per step
 MAX_PROJECTILES = 5     # the K in "K closest projectiles the agent sees"
-MAX_EPISODE_STEPS = 1000
+MAX_EPISODE_STEPS = 1000  # max length of ONE episode (not the total training amount!)
 SPAWN_PROB = 0.05       # chance per step that a new projectile spawns (tunable)
+AIM_RADIUS = 100        # projectiles aim within this many pixels of the agent.
+                        # Small = surgical (hard). Large = spray (easy).
+                        # If this were None / large, the agent could find a
+                        # "lucky corner" to camp in. Tracking the agent forces
+                        # real dodging — there is no safe rest spot.
 
 # The 9 discrete actions, as (dx, dy) unit vectors.
 # Index 0 = stay still, 1-8 = the 8 compass directions.
@@ -66,6 +71,10 @@ class DodgeEnv(gym.Env):
         self._screen = None
         self._clock = None
 
+        # Flag set by render() when the user closes the window or hits ESC.
+        # The training/watch loop should poll this and exit cleanly.
+        self.closed_by_user = False
+
     # ------------------------------------------------------------------
     # Gymnasium API: reset()
     # ------------------------------------------------------------------
@@ -87,7 +96,14 @@ class DodgeEnv(gym.Env):
     # Helpers
     # ------------------------------------------------------------------
     def _spawn_projectile(self):
-        """Spawn one projectile from a random edge, aimed toward the arena."""
+        """Spawn one projectile from a random edge, aimed at the agent
+        (plus a random offset). This forces real dodging — there is no
+        safe corner to camp in, because incoming fire follows you.
+
+        The offset (radius AIM_RADIUS) is the difficulty dial:
+          - small radius  -> projectiles aim right at you (hard)
+          - large radius  -> "spray" pattern (easy)
+        """
         # Pick which edge: 0=top, 1=right, 2=bottom, 3=left
         edge = self.np_random.integers(0, 4)
         if edge == 0:       # top
@@ -103,11 +119,14 @@ class DodgeEnv(gym.Env):
             x = 0.0
             y = self.np_random.uniform(0, ARENA_H)
 
-        # Aim toward a random point in a central region of the arena.
-        # This guarantees projectiles actually threaten the agent zone,
-        # rather than skimming the edge harmlessly.
-        target_x = self.np_random.uniform(ARENA_W * 0.25, ARENA_W * 0.75)
-        target_y = self.np_random.uniform(ARENA_H * 0.25, ARENA_H * 0.75)
+        # Aim at a random point inside a disk of radius AIM_RADIUS around
+        # the agent's CURRENT position. sqrt() on the radius makes the
+        # samples uniformly distributed over the disk's area (otherwise
+        # they cluster near the center).
+        angle = self.np_random.uniform(0.0, 2.0 * np.pi)
+        r = AIM_RADIUS * np.sqrt(self.np_random.random())
+        target_x = self.agent_pos[0] + r * np.cos(angle)
+        target_y = self.agent_pos[1] + r * np.sin(angle)
 
         dx = target_x - x
         dy = target_y - y
@@ -243,7 +262,14 @@ class DodgeEnv(gym.Env):
             )
 
         if self.render_mode == "human":
-            pygame.event.pump()  # keep window responsive
+            # Drain events. If the user closed the window or pressed ESC,
+            # set self.closed_by_user so the caller can break out of its
+            # loop cleanly (instead of the script hanging).
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.closed_by_user = True
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.closed_by_user = True
             pygame.display.flip()
             self._clock.tick(self.metadata["render_fps"])
             return None

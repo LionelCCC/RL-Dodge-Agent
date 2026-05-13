@@ -1,9 +1,11 @@
 """
 Watch a trained PPO agent play DodgeEnv.
 
-Two modes:
-  --mode human  -> opens a pygame window (run this locally on your machine)
-  --mode gif    -> saves a GIF of one episode to <out> (works headless)
+Modes:
+  --mode human  -> opens a pygame window. Close the X or hit ESC to stop.
+                   Use --episodes N to play multiple back-to-back.
+  --mode gif    -> saves a GIF of one episode (works headless)
+  --mode eval   -> headless stats over N episodes
 """
 
 import argparse
@@ -14,42 +16,46 @@ from dodge_env import DodgeEnv
 from ppo_agent import load_agent, CHECKPOINT_PATH
 
 
-def run_episode(agent, render_mode, seed=None, deterministic=True, max_steps=1000):
-    """Run one episode. Returns (steps, frames). frames is a list of HxWx3 uint8 arrays
-    if render_mode == 'rgb_array', else None."""
-    env = DodgeEnv(render_mode=render_mode)
-    obs, _ = env.reset(seed=seed)
-    frames = [] if render_mode == "rgb_array" else None
-    steps = 0
-    while True:
-        obs_t = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-        with torch.no_grad():
-            logits = agent.actor(agent.trunk(obs_t))
-            if deterministic:
-                action = int(logits.argmax(dim=-1).item())
-            else:
-                from torch.distributions import Categorical
-                action = int(Categorical(logits=logits).sample().item())
+def pick_action(agent, obs, deterministic=True):
+    """Return one integer action given a (single) observation array."""
+    obs_t = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+    with torch.no_grad():
+        logits = agent.actor(agent.trunk(obs_t))
+        if deterministic:
+            return int(logits.argmax(dim=-1).item())
+        from torch.distributions import Categorical
+        return int(Categorical(logits=logits).sample().item())
 
+
+def run_episode(env, agent, deterministic=True, max_steps=1000, collect_frames=False):
+    """Run one episode using the given (already-constructed) env.
+    Returns (steps, frames_or_None, user_quit_bool)."""
+    obs, _ = env.reset()
+    frames = [] if collect_frames else None
+    steps = 0
+    user_quit = False
+    while True:
+        action = pick_action(agent, obs, deterministic=deterministic)
         obs, _, terminated, truncated, _ = env.step(action)
         steps += 1
 
-        if render_mode is not None:
+        if env.render_mode is not None:
             frame = env.render()
             if frames is not None and frame is not None:
                 frames.append(frame)
+            if env.render_mode == "human" and env.closed_by_user:
+                user_quit = True
+                break
 
         if terminated or truncated or steps >= max_steps:
             break
 
-    env.close()
-    return steps, frames
+    return steps, frames, user_quit
 
 
 def save_gif(frames, path, fps=30):
     """Save a list of HxWx3 uint8 frames as a GIF. Subsamples to keep file size sane."""
     from PIL import Image
-    # GIFs above ~15 FPS get bloated; downsample to ~15 FPS.
     keep_every = max(1, fps // 15)
     keep = frames[::keep_every]
     imgs = [Image.fromarray(f) for f in keep]
@@ -64,12 +70,32 @@ def save_gif(frames, path, fps=30):
     print(f"Saved {len(keep)} frames to {path}")
 
 
+def watch_live(agent, episodes, deterministic, seed):
+    """Open a window and play N episodes back-to-back. Stops cleanly on window close / ESC."""
+    env = DodgeEnv(render_mode="human")
+    try:
+        for ep in range(1, episodes + 1):
+            env.reset(seed=seed + ep)  # different seed per episode for variety
+            steps, _, user_quit = run_episode(env, agent, deterministic=deterministic)
+            print(f"Episode {ep:3d}/{episodes}: survived {steps} steps")
+            if user_quit:
+                print("Window closed — stopping.")
+                break
+    finally:
+        env.close()
+
+
 def evaluate(agent, num_episodes=20):
     """Headless eval: report mean episode length."""
+    env = DodgeEnv(render_mode=None)
     lengths = []
-    for ep in range(num_episodes):
-        steps, _ = run_episode(agent, render_mode=None, seed=ep, deterministic=True)
-        lengths.append(steps)
+    try:
+        for ep in range(num_episodes):
+            env.reset(seed=ep)
+            steps, _, _ = run_episode(env, agent, deterministic=True)
+            lengths.append(steps)
+    finally:
+        env.close()
     lengths = np.array(lengths)
     print(f"Eval over {num_episodes} episodes: "
           f"mean={lengths.mean():.1f}  std={lengths.std():.1f}  "
@@ -77,33 +103,39 @@ def evaluate(agent, num_episodes=20):
     return lengths
 
 
+def make_gif(agent, out_path, seed, deterministic):
+    env = DodgeEnv(render_mode="rgb_array")
+    try:
+        env.reset(seed=seed)
+        steps, frames, _ = run_episode(env, agent, deterministic=deterministic, collect_frames=True)
+    finally:
+        env.close()
+    print(f"Episode lasted {steps} steps. Rendering {len(frames)} frames -> {out_path}")
+    save_gif(frames, out_path)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("--checkpoint", default=CHECKPOINT_PATH)
     parser.add_argument("--mode", choices=["human", "gif", "eval"], default="human",
                         help="human=live window, gif=save GIF, eval=headless stats")
-    parser.add_argument("--out", default="trained_agent.gif")
+    parser.add_argument("--out", default="trained_agent.gif",
+                        help="output path for --mode gif")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--episodes", type=int, default=20,
-                        help="how many episodes for eval mode")
+    parser.add_argument("--episodes", type=int, default=5,
+                        help="how many episodes (used by --mode human and --mode eval)")
     parser.add_argument("--stochastic", action="store_true",
                         help="sample actions instead of taking argmax")
     args = parser.parse_args()
 
     agent = load_agent(args.checkpoint)
+    deterministic = not args.stochastic
 
     if args.mode == "eval":
         evaluate(agent, num_episodes=args.episodes)
     elif args.mode == "human":
-        steps, _ = run_episode(
-            agent, render_mode="human", seed=args.seed,
-            deterministic=not args.stochastic,
-        )
-        print(f"Episode lasted {steps} steps")
+        watch_live(agent, episodes=args.episodes, deterministic=deterministic, seed=args.seed)
     elif args.mode == "gif":
-        steps, frames = run_episode(
-            agent, render_mode="rgb_array", seed=args.seed,
-            deterministic=not args.stochastic,
-        )
-        print(f"Episode lasted {steps} steps. Rendering {len(frames)} frames -> {args.out}")
-        save_gif(frames, args.out)
+        make_gif(agent, out_path=args.out, seed=args.seed, deterministic=deterministic)
