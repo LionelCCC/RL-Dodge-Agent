@@ -1,0 +1,261 @@
+"""
+DodgeEnv: a 2D arena where an agent dodges straight-line projectiles.
+Conforms to the Gymnasium API so any RL algorithm can train on it.
+"""
+
+import numpy as np
+import gymnasium as gym
+from gymnasium import spaces
+
+
+# ---- Constants. Put them at the top so they're easy to tweak. ----
+ARENA_W = 800           # arena width in pixels/units
+ARENA_H = 600           # arena height
+AGENT_RADIUS = 15
+PROJECTILE_RADIUS = 5
+AGENT_SPEED = 5.0       # units per step
+PROJECTILE_SPEED = 4.0  # units per step
+MAX_PROJECTILES = 5     # the K in "K closest projectiles the agent sees"
+MAX_EPISODE_STEPS = 1000
+SPAWN_PROB = 0.05       # chance per step that a new projectile spawns (tunable)
+
+# The 9 discrete actions, as (dx, dy) unit vectors.
+# Index 0 = stay still, 1-8 = the 8 compass directions.
+# We use 1/sqrt(2) ~= 0.707 for diagonals so speed is the same in all directions.
+_INV_SQRT2 = 1.0 / np.sqrt(2.0)
+ACTIONS = np.array([
+    [ 0,  0],            # 0: stay
+    [ 0, -1],            # 1: N (up)
+    [ _INV_SQRT2, -_INV_SQRT2],  # 2: NE
+    [ 1,  0],            # 3: E
+    [ _INV_SQRT2,  _INV_SQRT2],  # 4: SE
+    [ 0,  1],            # 5: S (down)
+    [-_INV_SQRT2,  _INV_SQRT2],  # 6: SW
+    [-1,  0],            # 7: W
+    [-_INV_SQRT2, -_INV_SQRT2],  # 8: NW
+], dtype=np.float32)
+
+
+class DodgeEnv(gym.Env):
+    """The dodging environment, Gymnasium-compatible."""
+
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
+
+    def __init__(self, render_mode=None):
+        super().__init__()
+        self.render_mode = render_mode
+
+        # Observation: 4 (agent) + MAX_PROJECTILES * 4 (each projectile) = 24 floats
+        obs_dim = 4 + MAX_PROJECTILES * 4
+        # We bound observations roughly by arena size. Not strictly enforced,
+        # but it tells downstream code the rough scale.
+        self.observation_space = spaces.Box(
+            low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float32
+        )
+
+        # 9 discrete actions: stay still + 8 compass directions
+        self.action_space = spaces.Discrete(9)
+
+        # Internal state, populated in reset()
+        self.agent_pos = None      # np.array([x, y])
+        self.agent_vel = None      # np.array([vx, vy]) — last frame's velocity
+        self.projectiles = None    # list of dicts with pos and vel
+        self.steps = 0
+
+        # For rendering (we'll fill this in later)
+        self._screen = None
+        self._clock = None
+
+    # ------------------------------------------------------------------
+    # Gymnasium API: reset()
+    # ------------------------------------------------------------------
+    def reset(self, seed=None, options=None):
+        """Start a new episode. Returns (initial_observation, info_dict)."""
+        super().reset(seed=seed)  # seeds self.np_random for reproducibility
+
+        # Agent starts in the center of the arena, at rest.
+        self.agent_pos = np.array([ARENA_W / 2, ARENA_H / 2], dtype=np.float32)
+        self.agent_vel = np.array([0.0, 0.0], dtype=np.float32)
+
+        # Start with no projectiles. They'll spawn over time inside step().
+        self.projectiles = []
+        self.steps = 0
+
+        return self._get_obs(), {}
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+    def _spawn_projectile(self):
+        """Spawn one projectile from a random edge, aimed toward the arena."""
+        # Pick which edge: 0=top, 1=right, 2=bottom, 3=left
+        edge = self.np_random.integers(0, 4)
+        if edge == 0:       # top
+            x = self.np_random.uniform(0, ARENA_W)
+            y = 0.0
+        elif edge == 1:     # right
+            x = ARENA_W
+            y = self.np_random.uniform(0, ARENA_H)
+        elif edge == 2:     # bottom
+            x = self.np_random.uniform(0, ARENA_W)
+            y = ARENA_H
+        else:               # left
+            x = 0.0
+            y = self.np_random.uniform(0, ARENA_H)
+
+        # Aim toward a random point in a central region of the arena.
+        # This guarantees projectiles actually threaten the agent zone,
+        # rather than skimming the edge harmlessly.
+        target_x = self.np_random.uniform(ARENA_W * 0.25, ARENA_W * 0.75)
+        target_y = self.np_random.uniform(ARENA_H * 0.25, ARENA_H * 0.75)
+
+        dx = target_x - x
+        dy = target_y - y
+        norm = np.sqrt(dx * dx + dy * dy) + 1e-8  # avoid divide-by-zero
+        vx = (dx / norm) * PROJECTILE_SPEED
+        vy = (dy / norm) * PROJECTILE_SPEED
+
+        self.projectiles.append({
+            "pos": np.array([x, y], dtype=np.float32),
+            "vel": np.array([vx, vy], dtype=np.float32),
+        })
+
+    def _get_obs(self):
+        """Build the 24-dim observation vector the agent sees."""
+        obs = np.zeros(4 + MAX_PROJECTILES * 4, dtype=np.float32)
+
+        # Agent state: position normalized to roughly [-1, 1], velocity normalized.
+        # Normalization makes the neural net's life MUCH easier.
+        obs[0] = (self.agent_pos[0] - ARENA_W / 2) / (ARENA_W / 2)
+        obs[1] = (self.agent_pos[1] - ARENA_H / 2) / (ARENA_H / 2)
+        obs[2] = self.agent_vel[0] / AGENT_SPEED
+        obs[3] = self.agent_vel[1] / AGENT_SPEED
+
+        # Sort projectiles by distance to agent (closest first).
+        if len(self.projectiles) > 0:
+            dists = [
+                np.linalg.norm(p["pos"] - self.agent_pos)
+                for p in self.projectiles
+            ]
+            order = np.argsort(dists)
+            # Take up to MAX_PROJECTILES of the closest ones
+            for slot, idx in enumerate(order[:MAX_PROJECTILES]):
+                p = self.projectiles[idx]
+                # Egocentric: positions are RELATIVE to the agent.
+                rel = p["pos"] - self.agent_pos
+                offset = 4 + slot * 4
+                obs[offset + 0] = rel[0] / (ARENA_W / 2)  # normalized relative x
+                obs[offset + 1] = rel[1] / (ARENA_H / 2)  # normalized relative y
+                obs[offset + 2] = p["vel"][0] / PROJECTILE_SPEED  # normalized vx
+                obs[offset + 3] = p["vel"][1] / PROJECTILE_SPEED  # normalized vy
+            # Empty slots stay as zeros. The agent learns "zeros = no projectile here."
+
+        return obs
+
+    # ------------------------------------------------------------------
+    # Gymnasium API: step()
+    # ------------------------------------------------------------------
+    def step(self, action):
+        """
+        Advance the world by one timestep given the agent's chosen action.
+        Returns (next_obs, reward, terminated, truncated, info).
+        """
+        self.steps += 1
+
+        # --- 1. Move the agent according to its chosen action ---
+        direction = ACTIONS[action]                     # unit vector for this action
+        self.agent_vel = direction * AGENT_SPEED        # remembered for the next obs
+        self.agent_pos += self.agent_vel
+
+        # Keep the agent inside the arena (clip to walls).
+        self.agent_pos[0] = np.clip(self.agent_pos[0], AGENT_RADIUS, ARENA_W - AGENT_RADIUS)
+        self.agent_pos[1] = np.clip(self.agent_pos[1], AGENT_RADIUS, ARENA_H - AGENT_RADIUS)
+
+        # --- 2. Move every projectile forward ---
+        for p in self.projectiles:
+            p["pos"] += p["vel"]
+
+        # --- 3. Remove projectiles that have left the arena ---
+        # (with a bit of margin so they fully exit before disappearing)
+        margin = 50
+        self.projectiles = [
+            p for p in self.projectiles
+            if -margin <= p["pos"][0] <= ARENA_W + margin
+            and -margin <= p["pos"][1] <= ARENA_H + margin
+        ]
+
+        # --- 4. Maybe spawn a new projectile ---
+        if self.np_random.random() < SPAWN_PROB:
+            self._spawn_projectile()
+
+        # --- 5. Check for collisions (agent vs any projectile) ---
+        hit = False
+        collision_radius = AGENT_RADIUS + PROJECTILE_RADIUS
+        for p in self.projectiles:
+            d = np.linalg.norm(p["pos"] - self.agent_pos)
+            if d < collision_radius:
+                hit = True
+                break
+
+        # --- 6. Compute reward, terminated, truncated ---
+        # Reward = +1 per step survived. Death gives 0 (clean, no death penalty).
+        reward = 1.0
+        terminated = hit                       # natural end (agent died)
+        truncated = self.steps >= MAX_EPISODE_STEPS  # external time limit
+
+        return self._get_obs(), reward, terminated, truncated, {}
+
+    # ------------------------------------------------------------------
+    # Rendering
+    # ------------------------------------------------------------------
+    def render(self):
+        """Draw the arena with pygame. Lazy-init the window on first call."""
+        if self.render_mode is None:
+            return None
+
+        import pygame
+        if self._screen is None:
+            pygame.init()
+            if self.render_mode == "human":
+                pygame.display.init()
+                self._screen = pygame.display.set_mode((ARENA_W, ARENA_H))
+                pygame.display.set_caption("DodgeEnv")
+            else:  # rgb_array
+                self._screen = pygame.Surface((ARENA_W, ARENA_H))
+            self._clock = pygame.time.Clock()
+
+        # Background
+        self._screen.fill((20, 20, 30))  # near-black with a hint of blue
+
+        # Agent (cyan circle)
+        pygame.draw.circle(
+            self._screen, (0, 200, 255),
+            (int(self.agent_pos[0]), int(self.agent_pos[1])),
+            AGENT_RADIUS
+        )
+
+        # Projectiles (red circles)
+        for p in self.projectiles:
+            pygame.draw.circle(
+                self._screen, (255, 80, 80),
+                (int(p["pos"][0]), int(p["pos"][1])),
+                PROJECTILE_RADIUS
+            )
+
+        if self.render_mode == "human":
+            pygame.event.pump()  # keep window responsive
+            pygame.display.flip()
+            self._clock.tick(self.metadata["render_fps"])
+            return None
+        else:
+            # rgb_array: return a numpy array of the rendered frame
+            arr = pygame.surfarray.array3d(self._screen)
+            return np.transpose(arr, (1, 0, 2))
+
+    def close(self):
+        if self._screen is not None:
+            import pygame
+            if self.render_mode == "human":
+                pygame.display.quit()
+            pygame.quit()
+            self._screen = None
