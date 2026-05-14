@@ -9,11 +9,28 @@ Modes:
 """
 
 import argparse
+import os
 import numpy as np
 import torch
 
-from dodge_env import DodgeEnv
-from ppo_agent import load_agent, CHECKPOINT_PATH
+from dodge_env import (
+    DodgeEnv,
+    SPAWN_DISTANCE_MIN,
+    SPAWN_DISTANCE_MAX,
+    CURRICULUM_PRESETS,
+)
+from ppo_agent import (
+    load_agent,
+    CHECKPOINT_PATH,
+    BEST_CHECKPOINT_PATH,
+)
+
+
+def default_checkpoint():
+    """Prefer the best-by-mean checkpoint; fall back to latest if missing."""
+    if os.path.exists(BEST_CHECKPOINT_PATH):
+        return BEST_CHECKPOINT_PATH
+    return CHECKPOINT_PATH
 
 
 def pick_action(agent, obs, deterministic=True):
@@ -77,9 +94,15 @@ def save_gif(frames, path, fps=30):
     print(f"Saved {len(keep)} frames to {path}")
 
 
-def watch_live(agent, episodes, deterministic, seed):
+def watch_live(agent, episodes, deterministic, seed,
+               spawn_distance_min=SPAWN_DISTANCE_MIN,
+               spawn_distance_max=SPAWN_DISTANCE_MAX):
     """Open a window and play N episodes back-to-back. Stops cleanly on window close / ESC."""
-    env = DodgeEnv(render_mode="human")
+    env = DodgeEnv(
+        render_mode="human",
+        spawn_distance_min=spawn_distance_min,
+        spawn_distance_max=spawn_distance_max,
+    )
     try:
         for ep in range(1, episodes + 1):
             steps, _, user_quit = run_episode(
@@ -96,9 +119,15 @@ def watch_live(agent, episodes, deterministic, seed):
         env.close()
 
 
-def evaluate(agent, num_episodes=20):
+def evaluate(agent, num_episodes=20,
+             spawn_distance_min=SPAWN_DISTANCE_MIN,
+             spawn_distance_max=SPAWN_DISTANCE_MAX):
     """Headless eval: report mean episode length."""
-    env = DodgeEnv(render_mode=None)
+    env = DodgeEnv(
+        render_mode=None,
+        spawn_distance_min=spawn_distance_min,
+        spawn_distance_max=spawn_distance_max,
+    )
     lengths = []
     try:
         for ep in range(num_episodes):
@@ -113,8 +142,14 @@ def evaluate(agent, num_episodes=20):
     return lengths
 
 
-def make_gif(agent, out_path, seed, deterministic):
-    env = DodgeEnv(render_mode="rgb_array")
+def make_gif(agent, out_path, seed, deterministic,
+             spawn_distance_min=SPAWN_DISTANCE_MIN,
+             spawn_distance_max=SPAWN_DISTANCE_MAX):
+    env = DodgeEnv(
+        render_mode="rgb_array",
+        spawn_distance_min=spawn_distance_min,
+        spawn_distance_max=spawn_distance_max,
+    )
     try:
         steps, frames, _ = run_episode(
             env,
@@ -133,7 +168,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--checkpoint", default=CHECKPOINT_PATH)
+    parser.add_argument(
+        "--checkpoint", default=None,
+        help=f"checkpoint to load. Defaults to {BEST_CHECKPOINT_PATH} if it "
+             f"exists, else {CHECKPOINT_PATH}.",
+    )
     parser.add_argument("--mode", choices=["human", "gif", "eval"], default="human",
                         help="human=live window, gif=save GIF, eval=headless stats")
     parser.add_argument("--out", default="trained_agent.gif",
@@ -143,14 +182,61 @@ if __name__ == "__main__":
                         help="how many episodes (used by --mode human and --mode eval)")
     parser.add_argument("--stochastic", action="store_true",
                         help="sample actions instead of taking argmax")
+    parser.add_argument(
+        "--curriculum",
+        choices=sorted(CURRICULUM_PRESETS),
+        default="target",
+        help="spawn-distance preset. target=220..320, easy=280..400.",
+    )
+    parser.add_argument(
+        "--spawn-distance-min",
+        type=float,
+        default=None,
+        help="override curriculum preset minimum projectile spawn distance.",
+    )
+    parser.add_argument(
+        "--spawn-distance-max",
+        type=float,
+        default=None,
+        help="override curriculum preset maximum projectile spawn distance.",
+    )
     args = parser.parse_args()
 
-    agent = load_agent(args.checkpoint)
+    checkpoint_path = args.checkpoint or default_checkpoint()
+    print(f"Loading checkpoint: {checkpoint_path}")
+    agent = load_agent(checkpoint_path)
     deterministic = not args.stochastic
+    preset_min, preset_max = CURRICULUM_PRESETS[args.curriculum]
+    spawn_distance_min = (
+        args.spawn_distance_min if args.spawn_distance_min is not None else preset_min
+    )
+    spawn_distance_max = (
+        args.spawn_distance_max if args.spawn_distance_max is not None else preset_max
+    )
+    print(f"Spawn distance: {spawn_distance_min:.0f}..{spawn_distance_max:.0f}")
 
     if args.mode == "eval":
-        evaluate(agent, num_episodes=args.episodes)
+        evaluate(
+            agent,
+            num_episodes=args.episodes,
+            spawn_distance_min=spawn_distance_min,
+            spawn_distance_max=spawn_distance_max,
+        )
     elif args.mode == "human":
-        watch_live(agent, episodes=args.episodes, deterministic=deterministic, seed=args.seed)
+        watch_live(
+            agent,
+            episodes=args.episodes,
+            deterministic=deterministic,
+            seed=args.seed,
+            spawn_distance_min=spawn_distance_min,
+            spawn_distance_max=spawn_distance_max,
+        )
     elif args.mode == "gif":
-        make_gif(agent, out_path=args.out, seed=args.seed, deterministic=deterministic)
+        make_gif(
+            agent,
+            out_path=args.out,
+            seed=args.seed,
+            deterministic=deterministic,
+            spawn_distance_min=spawn_distance_min,
+            spawn_distance_max=spawn_distance_max,
+        )

@@ -19,15 +19,16 @@ start here.
 | `NUM_MINIBATCHES` | How many chunks each rollout is split into during learning. | Default `32`. With 2048 steps, each minibatch has 64 samples. | Too many tiny minibatches can make updates noisy. |
 | `UPDATE_EPOCHS` | How many times PPO reuses the same rollout during one update. | Default `10`. | Too high can overfit to the latest rollout. |
 | `LR` | Learning rate: how big each optimizer step is. | Default `3e-4`. | If training is unstable, try `1e-4`. |
-| `ANNEAL_LR` | Whether learning rate fades down during training. | Default `True`. | Usually keep this on for PPO. |
+| `ANNEAL_LR` | Whether learning rate fades down during training. | Current experiment: `False`. | Leaving it off makes short runs and resumed runs less likely to freeze at near-zero LR. |
 | `GAMMA` | How much the agent cares about future survival. | Default `0.99`. | Lower values make the agent more short-sighted. |
 | `GAE_LAMBDA` | Smooths advantage estimates. | Default `0.95`. | Standard PPO value; don't tune first. |
 | `CLIP_COEF` | Limits how much the policy can change in one update. | Default `0.2`. | If `clipfrac` is always huge, reduce LR before touching this. |
-| `ENT_COEF` | Exploration pressure. | Default `0.01`. Higher means more random/exploratory. | If entropy crashes early, raise this a bit. |
+| `ENT_COEF` | Exploration pressure. | Current value: `0.005`. Higher means more random/exploratory. | Curriculum (easy → target) was a bigger win than further lowering `ENT_COEF`. If argmax eval still trails sampled-training mean by >15%, a polish stage with `ENT_COEF=0.003` is the next experiment. |
 | `VF_COEF` | How much critic/value loss matters in total loss. | Default `0.5`. | Standard PPO value; don't tune first. |
 | `MAX_GRAD_NORM` | Caps gradient size. | Default `0.5`. | Safety rail against unstable updates. |
 | `HIDDEN_DIM` | Neural net hidden layer width. | Default `64`. | Bigger isn't automatically better for this small env. |
 | `CHECKPOINT_PATH` | Where learning is saved. | Default `ppo_dodge.pt`. | Running fresh training can overwrite this. |
+| `BEST_CHECKPOINT_PATH` | Where the best rolling-mean policy for the current run/stage is saved. | Default `ppo_dodge_best.pt`. | Use this for eval/watch because PPO can peak and then regress. Archive it before transfer if you want to keep the easy-stage source. |
 | `CHECKPOINT_INTERVAL` | How often training auto-saves. | Default every `10` updates. | More frequent saves are safer but slightly noisier on disk. |
 
 ### Environment/game knobs (`dodge_env.py`)
@@ -43,7 +44,8 @@ start here.
 | `MAX_EPISODE_STEPS` | Max length of one episode. | `1000` steps. | This is not total training length. It only caps one run/play. |
 | `SPAWN_PROB` | Chance of spawning one projectile each step. | `0.03`, about 30 spawn attempts per 1000-step episode. | Higher means denser danger. |
 | `AIM_RADIUS` | How close to the agent each projectile aims. | `100` pixels. | Smaller is more precise and harder; larger is more spray-like and easier. |
-| `SPAWN_DISTANCE_MIN/MAX` | How far from the agent projectiles appear. | `220` to `320` pixels away. | Too far gives camping reaction time; too close can feel unfair/impossible. |
+| `SPAWN_DISTANCE_MIN/MAX` | How far from the agent projectiles appear. | Target difficulty: `220` to `320` pixels away. Easy curriculum: `280` to `400`. | Too far gives camping reaction time; too close can feel unfair/impossible. |
+| `CURRICULUM_PRESETS` | Named difficulty presets used by training/watching commands. | `target = 220..320`, `easy = 280..400`. | Prefer this over hand-editing constants for experiments. Empirically: easy (1M) → target (500k transfer) beats flat target (1M) by ~54% on deterministic eval. |
 | `ACTIONS` | The 9 choices the policy can output. | stay, N, NE, E, SE, S, SW, W, NW. | Diagonals are normalized so they are not faster than straight movement. |
 
 ### Command-line knobs
@@ -53,9 +55,12 @@ start here.
 | `ppo_agent.py --steps N` | Train for N total env steps this session. | `python3 ppo_agent.py --steps 1_000_000` |
 | `ppo_agent.py --resume` | Continue from `ppo_dodge.pt`. | `python3 ppo_agent.py --resume` |
 | `ppo_agent.py --render` | Watch the training loop live, slower. | `python3 ppo_agent.py --render` |
+| `ppo_agent.py --curriculum easy` | Train with easier projectile spawn distances. | `python3 ppo_agent.py --steps 1_000_000 --curriculum easy` |
+| `ppo_agent.py --curriculum target` | Train/eval on the real target difficulty. | `python3 ppo_agent.py --curriculum target --resume ppo_dodge_best.pt` |
 | `watch_agent.py --mode human` | Open live side window using saved checkpoint. | `python3 watch_agent.py --mode human` |
 | `watch_agent.py --mode eval` | Run saved checkpoint headlessly and print stats. | `python3 watch_agent.py --mode eval --episodes 30` |
 | `watch_agent.py --mode gif` | Save a visual sample GIF. | `python3 watch_agent.py --mode gif --out trained_agent.gif` |
+| `watch_agent.py --curriculum easy/target` | Evaluate or visualize under a chosen spawn-distance preset. | `python3 watch_agent.py --mode eval --curriculum target` |
 | `watch_agent.py --stochastic` | Sample actions instead of using best action. | `python3 watch_agent.py --mode human --stochastic` |
 | `watch_agent.py --episodes N` | Number of episodes to watch/evaluate. | `python3 watch_agent.py --mode eval --episodes 50` |
 | `watch_agent.py --seed N` | Pick a reproducible scenario. | `python3 watch_agent.py --mode gif --seed 7` |
@@ -120,7 +125,7 @@ Each PPO update computes three losses and adds them together:
 | **`pg_loss`** (policy gradient loss) | The PPO clipped objective for the policy. The thing that pushes the policy toward higher-advantage actions. | Typically small in magnitude, can be positive or negative. Big jumps mean the policy is changing a lot. |
 | **`v_loss`** (value loss) | Mean squared error between predicted `V(s)` and the actual return that came after. The critic's "how wrong was I?" | Should generally *decrease* over training as the critic gets better. Starts high (untrained critic). |
 | **`ent_loss` / entropy** | How *uncertain* the policy is. `ln(num_actions)` is the maximum (uniform distribution). | Starts near `ln(9) ≈ 2.197` (uniform), drifts down as the policy commits to good actions. Too low too fast = stopped exploring. |
-| **`ENT_COEF`** | Weight on the entropy bonus in the total loss. Higher → more exploration pressure. | 0.01 is standard. |
+| **`ENT_COEF`** | Weight on the entropy bonus in the total loss. Higher → more exploration pressure. | Current experiment uses 0.005 to encourage a more decisive policy. |
 | **`VF_COEF`** | Weight on the value loss. | 0.5 is standard. |
 
 ### How the three are combined
@@ -150,7 +155,7 @@ PPO's defining trick: don't let the policy change too much in one update.
 | **`sps`** | Steps Per Second. Training throughput. ~4000 sps headless, ~30 sps with `--render`. |
 | **`mean_ep_len`** | Mean episode length over the last 50 finished episodes. This is the number to watch — it should climb as the agent learns. |
 | **`MAX_GRAD_NORM`** | Global gradient norm clip. Prevents a single bad update from blowing up the network. 0.5 is standard. |
-| **`LR` / learning rate** | Adam's step size. `3e-4` is the PPO default. We linearly anneal it to 0 by the end (`ANNEAL_LR=True`). |
+| **`LR` / learning rate** | Adam's step size. `3e-4` is the PPO default. | Current experiment keeps LR constant (`ANNEAL_LR=False`) so resumed runs can keep learning. |
 | **`HIDDEN_DIM`** | Width of the MLP hidden layers. 64 is plenty for the current 36-dim observation. |
 | **`NUM_MINIBATCHES`** | How many minibatches we split each rollout into. Bigger minibatches = lower variance, fewer updates. |
 | **`UPDATE_EPOCHS`** | How many times we pass over each rollout. Too many → overfit to that rollout, policy moves too far. |
@@ -167,8 +172,35 @@ PPO's defining trick: don't let the policy change too much in one update.
 | `SPAWN_PROB` | Probability of spawning a projectile per step | More projectiles — harder. |
 | `MAX_PROJECTILES` | How many *closest* projectiles the agent's observation includes | More info — easier (more compute too). |
 | `AIM_RADIUS` | Projectiles aim at `agent_pos + offset(radius=AIM_RADIUS)` | **Bigger = easier** (sprays more, easier to dodge). **Smaller = harder** (more surgical). 100 px is a moderate setting. |
-| `SPAWN_DISTANCE_MIN/MAX` | Projectiles spawn on a local ring this far from the agent, instead of from arena edges. | Smaller = less reaction time, harder. Larger = more reaction time, easier. |
+| `SPAWN_DISTANCE_MIN/MAX` | Projectiles spawn on a local ring this far from the agent, instead of from arena edges. | Target = 220..320. Easy curriculum = 280..400. Smaller = less reaction time, harder. |
 | `MAX_EPISODE_STEPS` | Per-episode timeout | Higher ceiling for "perfect" runs but doesn't change difficulty. |
+
+---
+
+## 7b. Curriculum workflow — the canonical recipe
+
+Use this when a single difficulty setting plateaus. Empirically beat the flat
+1M-step baseline by ~54% on the same eval.
+
+```bash
+# Stage 1 — easy
+python3 ppo_agent.py --steps 1_000_000 --curriculum easy
+
+# Archive — the next session auto-clears ppo_dodge_best.pt
+cp ppo_dodge_best.pt ppo_dodge_easy_best.pt
+
+# Stage 2 — transfer to target
+python3 ppo_agent.py --steps 500_000 --curriculum target \
+    --resume ppo_dodge_easy_best.pt
+```
+
+Two non-obvious bits:
+- `BEST_CHECKPOINT_PATH` (`ppo_dodge_best.pt`) is *per-session*. Stage 2
+  deletes the stage-1 best at start (after loading it via `--resume`), and
+  then writes its own best-of-stage-2.
+- Auto-eval uses the `--curriculum` you passed to `ppo_agent.py`. So
+  stage-1's auto-eval reports easy-difficulty numbers; the headline
+  apples-to-apples comparison is `watch_agent.py --mode eval --curriculum target`.
 
 ---
 

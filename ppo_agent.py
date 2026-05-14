@@ -14,6 +14,7 @@ CLI cheatsheet (see also README.md):
   python3 ppo_agent.py --render              # fresh training + live window (slow)
   python3 ppo_agent.py --resume              # continue from ppo_dodge.pt
   python3 ppo_agent.py --steps 1_000_000     # longer run
+  python3 ppo_agent.py --curriculum easy     # easier spawn distance (280..400)
   Ctrl-C or close the window -> graceful save to ppo_dodge.pt.
 """
 
@@ -26,7 +27,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 
-from dodge_env import DodgeEnv
+from dodge_env import (
+    DodgeEnv,
+    SPAWN_DISTANCE_MIN,
+    SPAWN_DISTANCE_MAX,
+    CURRICULUM_PRESETS,
+)
 
 
 # ============================================================
@@ -50,11 +56,20 @@ NUM_STEPS        = 2048         # steps collected per rollout before each update
 NUM_MINIBATCHES  = 32           # rollout is split into this many minibatches
 UPDATE_EPOCHS    = 10           # how many passes over each rollout
 LR               = 3e-4
-ANNEAL_LR        = True         # linearly decay LR to 0 over training
+ANNEAL_LR        = False        # linearly decay LR to 0 over training.
+                                # Disabled: this is the CleanRL Atari default
+                                # (designed for 10M+ step runs). On short ~1M-step
+                                # runs it (a) flattens learning right when you'd
+                                # want late corrections, and (b) breaks --resume
+                                # because the loaded optimizer state has LR≈0.
 GAMMA            = 0.99         # discount factor
 GAE_LAMBDA       = 0.95         # GAE smoothing
 CLIP_COEF        = 0.2          # PPO clip range
-ENT_COEF         = 0.01         # entropy bonus weight (encourages exploration)
+ENT_COEF         = 0.005        # entropy bonus weight (encourages exploration).
+                                # Lowered from 0.01: at 0.01 the policy was holding
+                                # near-uniform entropy (~2.1) for too long and not
+                                # committing to dodging directions. 0.005 is a
+                                # cheap "let it commit faster" experiment.
 VF_COEF          = 0.5          # value loss weight
 MAX_GRAD_NORM    = 0.5          # global grad clip
 HIDDEN_DIM       = 64
@@ -62,8 +77,15 @@ HIDDEN_DIM       = 64
 BATCH_SIZE       = NUM_STEPS                   # one env, so batch == rollout length
 MINIBATCH_SIZE   = BATCH_SIZE // NUM_MINIBATCHES
 
-CHECKPOINT_PATH      = "ppo_dodge.pt"
+CHECKPOINT_PATH      = "ppo_dodge.pt"        # latest weights (used by --resume)
+BEST_CHECKPOINT_PATH = "ppo_dodge_best.pt"   # best-by-mean_ep_len (used by eval/watch).
+                                             # PPO can find a peak then regress
+                                             # (value-function poisoning). Keeping
+                                             # the best-so-far gives us a stable
+                                             # artifact to evaluate/showcase.
 CHECKPOINT_INTERVAL  = 10        # save every N updates (so progress survives crashes/Ctrl-C)
+MIN_EPISODES_FOR_BEST = 10       # need at least this many finished episodes in
+                                 # the window before "best mean" is meaningful
 
 
 # ============================================================
@@ -113,13 +135,24 @@ class ActorCritic(nn.Module):
 # ============================================================
 # Checkpoint helpers
 # ============================================================
-def save_checkpoint(agent, optimizer, global_step, path=CHECKPOINT_PATH):
+def save_checkpoint(
+    agent,
+    optimizer,
+    global_step,
+    path=CHECKPOINT_PATH,
+    best_mean_len=None,
+    spawn_distance_min=None,
+    spawn_distance_max=None,
+):
     """Persist enough state to resume training later."""
     torch.save(
         {
             "model_state_dict": agent.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "global_step": int(global_step),
+            "best_mean_len": None if best_mean_len is None else float(best_mean_len),
+            "spawn_distance_min": spawn_distance_min,
+            "spawn_distance_max": spawn_distance_max,
             "obs_dim": agent.obs_dim,
             "n_actions": agent.n_actions,
             "hidden_dim": agent.hidden_dim,
@@ -139,11 +172,58 @@ def load_agent(path=CHECKPOINT_PATH, device="cpu"):
     return agent
 
 
+def auto_eval_and_gif(agent, n_episodes=20, gif_seed=7,
+                      gif_path="trained_agent.gif",
+                      spawn_distance_min=SPAWN_DISTANCE_MIN,
+                      spawn_distance_max=SPAWN_DISTANCE_MAX):
+    """Post-training: print deterministic-eval stats and overwrite the GIF.
+
+    Prefers ppo_dodge_best.pt over the in-memory (latest) agent. PPO can
+    regress after finding a good policy; if we eval the *latest* weights
+    we measure that regression. Eval'ing the saved best gives us a stable
+    picture of the best policy this run produced.
+
+    Deferred import to dodge the circular dependency on watch_agent.
+    """
+    from watch_agent import evaluate, make_gif
+    eval_agent = agent
+    eval_source = "latest (in-memory weights)"
+    if os.path.exists(BEST_CHECKPOINT_PATH):
+        try:
+            eval_agent = load_agent(BEST_CHECKPOINT_PATH)
+            eval_source = BEST_CHECKPOINT_PATH
+        except Exception as e:
+            print(f"Could not load {BEST_CHECKPOINT_PATH} ({e}); "
+                  f"falling back to in-memory latest.")
+    print(f"\n=== Auto-eval (deterministic, source: {eval_source}) ===")
+    evaluate(
+        eval_agent,
+        num_episodes=n_episodes,
+        spawn_distance_min=spawn_distance_min,
+        spawn_distance_max=spawn_distance_max,
+    )
+    print(f"\n=== Auto-GIF: seed={gif_seed} -> {gif_path} ===")
+    try:
+        make_gif(
+            eval_agent,
+            out_path=gif_path,
+            seed=gif_seed,
+            deterministic=True,
+            spawn_distance_min=spawn_distance_min,
+            spawn_distance_max=spawn_distance_max,
+        )
+    except Exception as e:
+        # GIF failure shouldn't crash the whole training session.
+        print(f"GIF generation failed: {e}")
+
+
 # ============================================================
 # Training
 # ============================================================
 def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
-          resume_path=None, verbose=True):
+          resume_path=None, verbose=True,
+          spawn_distance_min=SPAWN_DISTANCE_MIN,
+          spawn_distance_max=SPAWN_DISTANCE_MAX):
     # Seeding for reproducibility
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -153,7 +233,11 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
     device = torch.device("cpu")
 
     render_mode = "human" if render else None
-    env = DodgeEnv(render_mode=render_mode)
+    env = DodgeEnv(
+        render_mode=render_mode,
+        spawn_distance_min=spawn_distance_min,
+        spawn_distance_max=spawn_distance_max,
+    )
     obs_dim = env.observation_space.shape[0]
     n_actions = env.action_space.n
 
@@ -172,6 +256,11 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
         agent.load_state_dict(ckpt["model_state_dict"])
         if "optimizer_state_dict" in ckpt:
             optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        # Loading optimizer state restores LR from whatever the prior session
+        # ended at — which could be ~0 if it had been annealing. Force LR back
+        # to the configured value so resumed runs actually learn.
+        for g in optimizer.param_groups:
+            g["lr"] = LR
         print(f"Resumed from {resume_path} (trained for {ckpt.get('global_step', '?')} prior steps)")
     elif resume_path:
         print(f"--resume given but {resume_path} not found; starting fresh.")
@@ -191,6 +280,19 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
     cur_ep_rew = 0.0
     episodes_done = 0
 
+    # ---- Best-checkpoint tracking ----
+    # Best is scoped to THIS training command and THIS difficulty setting.
+    # Curriculum transfer should usually be:
+    #   1. train easy -> ppo_dodge_best.pt
+    #   2. optionally copy that source checkpoint elsewhere
+    #   3. train target --resume ppo_dodge_best.pt
+    # During step 3, the first target-stage improvement replaces the easy-stage
+    # best with a target-stage best, which is what watch/eval should headline.
+    if os.path.exists(BEST_CHECKPOINT_PATH):
+        print(f"Removing stale {BEST_CHECKPOINT_PATH} before this run.")
+        os.remove(BEST_CHECKPOINT_PATH)
+    best_mean_len = -1.0
+
     # Initial state
     next_obs_np, _ = env.reset(seed=seed)
     next_obs = torch.tensor(next_obs_np, dtype=torch.float32, device=device)
@@ -206,6 +308,7 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
         print("Close the window or press ESC (or Ctrl-C) to stop and save.\n")
 
     print(f"Will run {num_updates} updates of {NUM_STEPS} steps = {num_updates * NUM_STEPS} total steps")
+    print(f"Spawn distance: {spawn_distance_min:.0f}..{spawn_distance_max:.0f}")
     print(f"Checkpoint every {CHECKPOINT_INTERVAL} updates -> {CHECKPOINT_PATH}\n")
 
     try:
@@ -356,21 +459,42 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
                 break
 
             # ---- Per-update summary line ----
+            mean_len_now = (
+                float(np.mean(ep_lengths_window)) if ep_lengths_window else float("nan")
+            )
             if verbose:
-                mean_len = np.mean(ep_lengths_window) if ep_lengths_window else float("nan")
                 mean_rew = np.mean(ep_rewards_window) if ep_rewards_window else float("nan")
                 sps = int(global_step / (time.time() - start_time))
                 print(
                     f"=== upd {update:4d}/{num_updates} | step {global_step:7d} | "
-                    f"mean_ep_len {mean_len:6.1f} | mean_ep_rew {mean_rew:6.1f} | "
+                    f"mean_ep_len {mean_len_now:6.1f} | mean_ep_rew {mean_rew:6.1f} | "
                     f"pg_loss {pg_loss.item():+.3f} | v_loss {v_loss.item():.3f} | "
                     f"ent {ent_loss.item():.3f} | clipfrac {np.mean(clipfracs):.3f} | "
                     f"sps {sps} ==="
                 )
 
-            # ---- Periodic checkpoint ----
+            # ---- Track best mean_ep_len so we have a stable peak to evaluate ----
+            # Without this, the final checkpoint is whatever the policy regressed to.
+            if (len(ep_lengths_window) >= MIN_EPISODES_FOR_BEST
+                    and mean_len_now > best_mean_len):
+                best_mean_len = mean_len_now
+                save_checkpoint(agent, optimizer, global_step,
+                                path=BEST_CHECKPOINT_PATH,
+                                best_mean_len=best_mean_len,
+                                spawn_distance_min=spawn_distance_min,
+                                spawn_distance_max=spawn_distance_max)
+                print(f"   ^ new best mean_ep_len {best_mean_len:.1f} "
+                      f"(saved -> {BEST_CHECKPOINT_PATH})")
+
+            # ---- Periodic checkpoint (latest, used by --resume) ----
             if update % CHECKPOINT_INTERVAL == 0:
-                save_checkpoint(agent, optimizer, global_step)
+                save_checkpoint(
+                    agent,
+                    optimizer,
+                    global_step,
+                    spawn_distance_min=spawn_distance_min,
+                    spawn_distance_max=spawn_distance_max,
+                )
 
     except KeyboardInterrupt:
         print("\nCtrl-C — stopping training.")
@@ -378,7 +502,13 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
 
     finally:
         # Always save before exiting, even on Ctrl-C / window close.
-        save_checkpoint(agent, optimizer, global_step)
+        save_checkpoint(
+            agent,
+            optimizer,
+            global_step,
+            spawn_distance_min=spawn_distance_min,
+            spawn_distance_max=spawn_distance_max,
+        )
         print(f"\nSaved checkpoint to {CHECKPOINT_PATH} (global_step = {global_step})")
         env.close()
 
@@ -402,6 +532,45 @@ if __name__ == "__main__":
                         help="continue training from an existing checkpoint. "
                              "Use `--resume` to load ppo_dodge.pt, or "
                              "`--resume path/to/file.pt` for a specific file.")
+    parser.add_argument("--no-auto-eval", action="store_true",
+                        help="skip the post-training eval + GIF generation.")
+    parser.add_argument("--eval-episodes", type=int, default=20,
+                        help="how many episodes the post-training eval uses.")
+    parser.add_argument("--gif-seed", type=int, default=7,
+                        help="seed used for the post-training GIF episode.")
+    parser.add_argument(
+        "--curriculum",
+        choices=sorted(CURRICULUM_PRESETS),
+        default="target",
+        help="spawn-distance preset. target=220..320, easy=280..400.",
+    )
+    parser.add_argument(
+        "--spawn-distance-min",
+        type=float,
+        default=None,
+        help="override curriculum preset minimum projectile spawn distance.",
+    )
+    parser.add_argument(
+        "--spawn-distance-max",
+        type=float,
+        default=None,
+        help="override curriculum preset maximum projectile spawn distance.",
+    )
     args = parser.parse_args()
-    train(total_timesteps=args.steps, seed=args.seed,
-          render=args.render, resume_path=args.resume)
+    preset_min, preset_max = CURRICULUM_PRESETS[args.curriculum]
+    spawn_distance_min = (
+        args.spawn_distance_min if args.spawn_distance_min is not None else preset_min
+    )
+    spawn_distance_max = (
+        args.spawn_distance_max if args.spawn_distance_max is not None else preset_max
+    )
+    agent = train(total_timesteps=args.steps, seed=args.seed,
+                  render=args.render, resume_path=args.resume,
+                  spawn_distance_min=spawn_distance_min,
+                  spawn_distance_max=spawn_distance_max)
+    if not args.no_auto_eval:
+        auto_eval_and_gif(agent,
+                          n_episodes=args.eval_episodes,
+                          gif_seed=args.gif_seed,
+                          spawn_distance_min=spawn_distance_min,
+                          spawn_distance_max=spawn_distance_max)

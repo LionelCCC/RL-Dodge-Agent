@@ -20,8 +20,13 @@ MAX_EPISODE_STEPS = 1000  # max length of ONE episode (not the total training am
 SPAWN_PROB = 0.03       # chance per step that a new projectile spawns (tunable)
 AIM_RADIUS = 100        # projectiles aim within this many pixels of the agent.
                         # Small = surgical (hard). Large = spray (easy).
-SPAWN_DISTANCE_MIN = 220  # projectiles spawn this far from the agent, not arena edges
-SPAWN_DISTANCE_MAX = 320  # local spawns prevent corner-camping via long reaction time
+SPAWN_DISTANCE_MIN = 220  # target difficulty: local spawns this far from the agent
+SPAWN_DISTANCE_MAX = 320  # wider values are easier because reaction time is longer
+
+CURRICULUM_PRESETS = {
+    "target": (SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX),
+    "easy": (280, 400),
+}
 
 # The 9 discrete actions, as (dx, dy) unit vectors.
 # Index 0 = stay still, 1-8 = the 8 compass directions.
@@ -45,9 +50,20 @@ class DodgeEnv(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
-    def __init__(self, render_mode=None):
+    def __init__(
+        self,
+        render_mode=None,
+        spawn_distance_min=SPAWN_DISTANCE_MIN,
+        spawn_distance_max=SPAWN_DISTANCE_MAX,
+    ):
         super().__init__()
         self.render_mode = render_mode
+        self.spawn_distance_min = float(spawn_distance_min)
+        self.spawn_distance_max = float(spawn_distance_max)
+        if self.spawn_distance_min <= 0:
+            raise ValueError("spawn_distance_min must be positive")
+        if self.spawn_distance_max < self.spawn_distance_min:
+            raise ValueError("spawn_distance_max must be >= spawn_distance_min")
 
         # Observation: 4 (agent) + MAX_PROJECTILES * 4 (each projectile) floats
         obs_dim = 4 + MAX_PROJECTILES * 4
@@ -107,7 +123,7 @@ class DodgeEnv(gym.Env):
 
         for _ in range(100):
             angle = self.np_random.uniform(0.0, 2.0 * np.pi)
-            dist = self.np_random.uniform(SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX)
+            dist = self.np_random.uniform(self.spawn_distance_min, self.spawn_distance_max)
             pos = self.agent_pos + dist * np.array([np.cos(angle), np.sin(angle)])
             if low <= pos[0] <= high_x and low <= pos[1] <= high_y:
                 return pos.astype(np.float32)
@@ -120,14 +136,14 @@ class DodgeEnv(gym.Env):
                 self.np_random.uniform(low, high_y),
             ], dtype=np.float32)
             dist = np.linalg.norm(pos - self.agent_pos)
-            if SPAWN_DISTANCE_MIN <= dist <= SPAWN_DISTANCE_MAX:
+            if self.spawn_distance_min <= dist <= self.spawn_distance_max:
                 return pos
 
         # Last-resort fallback should almost never run, but keeps reset/step
         # total and avoids crashing if constants are changed aggressively.
         direction = np.array([ARENA_W / 2, ARENA_H / 2], dtype=np.float32) - self.agent_pos
         norm = np.linalg.norm(direction) + 1e-8
-        pos = self.agent_pos + direction / norm * SPAWN_DISTANCE_MIN
+        pos = self.agent_pos + direction / norm * self.spawn_distance_min
         pos[0] = np.clip(pos[0], low, high_x)
         pos[1] = np.clip(pos[1], low, high_y)
         return pos.astype(np.float32)
