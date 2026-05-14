@@ -14,8 +14,8 @@ start here.
 
 | Name | Plain English | In this project | Be careful |
 |---|---|---|---|
-| `TOTAL_TIMESTEPS` | How long the whole training session runs. | Default `300_000` calls to `env.step()`. This is the big "train more" knob. | This is not episodes. If episodes average 300 steps, then 300k steps is roughly 1000 episodes. |
-| `NUM_STEPS` | How many game frames the agent collects before PPO learns from them. | Default `2048` steps per rollout/update. | Bigger means fewer updates but more data per update. |
+| `TOTAL_TIMESTEPS` | Total numer of steps of the entire training--how long the whole training session runs. | Default `300_000` calls to `env.step()`. This is the big "train more" knob. | This is not episodes. If episodes average 300 steps, then 300k steps is roughly 1000 episodes. |
+| `NUM_STEPS` | How many steps the agent collects before PPO learns from them. | Default `2048` steps per rollout/update. | Bigger means fewer updates but more data per update. |
 | `NUM_MINIBATCHES` | How many chunks each rollout is split into during learning. | Default `32`. With 2048 steps, each minibatch has 64 samples. | Too many tiny minibatches can make updates noisy. |
 | `UPDATE_EPOCHS` | How many times PPO reuses the same rollout during one update. | Default `10`. | Too high can overfit to the latest rollout. |
 | `LR` | Learning rate: how big each optimizer step is. | Default `3e-4`. | If training is unstable, try `1e-4`. |
