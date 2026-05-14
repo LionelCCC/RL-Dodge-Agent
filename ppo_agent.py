@@ -163,6 +163,12 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
     # ---- Optional resume ----
     if resume_path and os.path.exists(resume_path):
         ckpt = torch.load(resume_path, map_location=device, weights_only=False)
+        if int(ckpt.get("obs_dim", obs_dim)) != obs_dim:
+            raise RuntimeError(
+                f"Checkpoint expects obs_dim={ckpt.get('obs_dim')}, but the "
+                f"current env returns obs_dim={obs_dim}. The environment changed; "
+                "start a fresh run without --resume."
+            )
         agent.load_state_dict(ckpt["model_state_dict"])
         if "optimizer_state_dict" in ckpt:
             optimizer.load_state_dict(ckpt["optimizer_state_dict"])
@@ -297,8 +303,16 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
             idx = np.arange(BATCH_SIZE)
             clipfracs = []
             for _ in range(UPDATE_EPOCHS):
+                if render and env.poll_close_event():
+                    print("\nWindow closed by user during PPO update — stopping after this checkpoint.")
+                    should_stop = True
+                    break
                 np.random.shuffle(idx)
                 for start in range(0, BATCH_SIZE, MINIBATCH_SIZE):
+                    if render and env.poll_close_event():
+                        print("\nWindow closed by user during PPO update — stopping after this checkpoint.")
+                        should_stop = True
+                        break
                     mb_idx = idx[start:start + MINIBATCH_SIZE]
 
                     _, new_logprob, entropy, new_value = agent.get_action_and_value(
@@ -334,6 +348,12 @@ def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
 
                     with torch.no_grad():
                         clipfracs.append(((ratio - 1.0).abs() > CLIP_COEF).float().mean().item())
+
+                if should_stop:
+                    break
+
+            if should_stop:
+                break
 
             # ---- Per-update summary line ----
             if verbose:

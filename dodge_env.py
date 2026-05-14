@@ -15,14 +15,13 @@ AGENT_RADIUS = 15
 PROJECTILE_RADIUS = 5
 AGENT_SPEED = 5.0       # units per step
 PROJECTILE_SPEED = 4.0  # units per step
-MAX_PROJECTILES = 5     # the K in "K closest projectiles the agent sees"
+MAX_PROJECTILES = 8     # the K in "K closest projectiles the agent sees"
 MAX_EPISODE_STEPS = 1000  # max length of ONE episode (not the total training amount!)
-SPAWN_PROB = 0.05       # chance per step that a new projectile spawns (tunable)
+SPAWN_PROB = 0.03       # chance per step that a new projectile spawns (tunable)
 AIM_RADIUS = 100        # projectiles aim within this many pixels of the agent.
                         # Small = surgical (hard). Large = spray (easy).
-                        # If this were None / large, the agent could find a
-                        # "lucky corner" to camp in. Tracking the agent forces
-                        # real dodging — there is no safe rest spot.
+SPAWN_DISTANCE_MIN = 220  # projectiles spawn this far from the agent, not arena edges
+SPAWN_DISTANCE_MAX = 320  # local spawns prevent corner-camping via long reaction time
 
 # The 9 discrete actions, as (dx, dy) unit vectors.
 # Index 0 = stay still, 1-8 = the 8 compass directions.
@@ -50,7 +49,7 @@ class DodgeEnv(gym.Env):
         super().__init__()
         self.render_mode = render_mode
 
-        # Observation: 4 (agent) + MAX_PROJECTILES * 4 (each projectile) = 24 floats
+        # Observation: 4 (agent) + MAX_PROJECTILES * 4 (each projectile) floats
         obs_dim = 4 + MAX_PROJECTILES * 4
         # We bound observations roughly by arena size. Not strictly enforced,
         # but it tells downstream code the rough scale.
@@ -95,29 +94,53 @@ class DodgeEnv(gym.Env):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _spawn_projectile(self):
-        """Spawn one projectile from a random edge, aimed at the agent
-        (plus a random offset). This forces real dodging — there is no
-        safe corner to camp in, because incoming fire follows you.
+    def _sample_projectile_spawn_pos(self):
+        """Sample a spawn point near the agent but still inside the arena.
 
-        The offset (radius AIM_RADIUS) is the difficulty dial:
+        Edge spawns are exploitable: a corner-camping agent gets too much
+        warning time from far-side projectiles. Local ring spawns make every
+        spawn relevant while still leaving a readable reaction window.
+        """
+        low = PROJECTILE_RADIUS
+        high_x = ARENA_W - PROJECTILE_RADIUS
+        high_y = ARENA_H - PROJECTILE_RADIUS
+
+        for _ in range(100):
+            angle = self.np_random.uniform(0.0, 2.0 * np.pi)
+            dist = self.np_random.uniform(SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX)
+            pos = self.agent_pos + dist * np.array([np.cos(angle), np.sin(angle)])
+            if low <= pos[0] <= high_x and low <= pos[1] <= high_y:
+                return pos.astype(np.float32)
+
+        # Fallback for extreme corner cases: sample anywhere in the arena
+        # until the projectile is far enough to be dodgeable.
+        for _ in range(100):
+            pos = np.array([
+                self.np_random.uniform(low, high_x),
+                self.np_random.uniform(low, high_y),
+            ], dtype=np.float32)
+            dist = np.linalg.norm(pos - self.agent_pos)
+            if SPAWN_DISTANCE_MIN <= dist <= SPAWN_DISTANCE_MAX:
+                return pos
+
+        # Last-resort fallback should almost never run, but keeps reset/step
+        # total and avoids crashing if constants are changed aggressively.
+        direction = np.array([ARENA_W / 2, ARENA_H / 2], dtype=np.float32) - self.agent_pos
+        norm = np.linalg.norm(direction) + 1e-8
+        pos = self.agent_pos + direction / norm * SPAWN_DISTANCE_MIN
+        pos[0] = np.clip(pos[0], low, high_x)
+        pos[1] = np.clip(pos[1], low, high_y)
+        return pos.astype(np.float32)
+
+    def _spawn_projectile(self):
+        """Spawn one local projectile, aimed near the agent.
+
+        Aim offset (radius AIM_RADIUS) is the precision difficulty dial:
           - small radius  -> projectiles aim right at you (hard)
           - large radius  -> "spray" pattern (easy)
         """
-        # Pick which edge: 0=top, 1=right, 2=bottom, 3=left
-        edge = self.np_random.integers(0, 4)
-        if edge == 0:       # top
-            x = self.np_random.uniform(0, ARENA_W)
-            y = 0.0
-        elif edge == 1:     # right
-            x = ARENA_W
-            y = self.np_random.uniform(0, ARENA_H)
-        elif edge == 2:     # bottom
-            x = self.np_random.uniform(0, ARENA_W)
-            y = ARENA_H
-        else:               # left
-            x = 0.0
-            y = self.np_random.uniform(0, ARENA_H)
+        spawn_pos = self._sample_projectile_spawn_pos()
+        x, y = spawn_pos
 
         # Aim at a random point inside a disk of radius AIM_RADIUS around
         # the agent's CURRENT position. sqrt() on the radius makes the
@@ -135,12 +158,12 @@ class DodgeEnv(gym.Env):
         vy = (dy / norm) * PROJECTILE_SPEED
 
         self.projectiles.append({
-            "pos": np.array([x, y], dtype=np.float32),
+            "pos": spawn_pos,
             "vel": np.array([vx, vy], dtype=np.float32),
         })
 
     def _get_obs(self):
-        """Build the 24-dim observation vector the agent sees."""
+        """Build the observation vector the agent sees."""
         obs = np.zeros(4 + MAX_PROJECTILES * 4, dtype=np.float32)
 
         # Agent state: position normalized to roughly [-1, 1], velocity normalized.
@@ -227,6 +250,19 @@ class DodgeEnv(gym.Env):
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
+    def poll_close_event(self):
+        """Return True if the user requested the render window to close."""
+        if self.render_mode != "human" or self._screen is None:
+            return self.closed_by_user
+
+        import pygame
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.closed_by_user = True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.closed_by_user = True
+        return self.closed_by_user
+
     def render(self):
         """Draw the arena with pygame. Lazy-init the window on first call."""
         if self.render_mode is None:
@@ -265,11 +301,7 @@ class DodgeEnv(gym.Env):
             # Drain events. If the user closed the window or pressed ESC,
             # set self.closed_by_user so the caller can break out of its
             # loop cleanly (instead of the script hanging).
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.closed_by_user = True
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.closed_by_user = True
+            self.poll_close_event()
             pygame.display.flip()
             self._clock.tick(self.metadata["render_fps"])
             return None

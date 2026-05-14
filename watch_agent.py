@@ -27,10 +27,17 @@ def pick_action(agent, obs, deterministic=True):
         return int(Categorical(logits=logits).sample().item())
 
 
-def run_episode(env, agent, deterministic=True, max_steps=1000, collect_frames=False):
+def run_episode(env, agent, deterministic=True, max_steps=1000,
+                collect_frames=False, seed=None):
     """Run one episode using the given (already-constructed) env.
     Returns (steps, frames_or_None, user_quit_bool)."""
-    obs, _ = env.reset()
+    obs, _ = env.reset(seed=seed)
+    if obs.shape[0] != agent.obs_dim:
+        raise RuntimeError(
+            f"Checkpoint expects obs_dim={agent.obs_dim}, but the current env "
+            f"returns obs_dim={obs.shape[0]}. The environment changed; retrain "
+            "from scratch with `python3 ppo_agent.py` before watching/evaluating."
+        )
     frames = [] if collect_frames else None
     steps = 0
     user_quit = False
@@ -75,8 +82,12 @@ def watch_live(agent, episodes, deterministic, seed):
     env = DodgeEnv(render_mode="human")
     try:
         for ep in range(1, episodes + 1):
-            env.reset(seed=seed + ep)  # different seed per episode for variety
-            steps, _, user_quit = run_episode(env, agent, deterministic=deterministic)
+            steps, _, user_quit = run_episode(
+                env,
+                agent,
+                deterministic=deterministic,
+                seed=seed + ep,  # different seed per episode for variety
+            )
             print(f"Episode {ep:3d}/{episodes}: survived {steps} steps")
             if user_quit:
                 print("Window closed — stopping.")
@@ -91,8 +102,7 @@ def evaluate(agent, num_episodes=20):
     lengths = []
     try:
         for ep in range(num_episodes):
-            env.reset(seed=ep)
-            steps, _, _ = run_episode(env, agent, deterministic=True)
+            steps, _, _ = run_episode(env, agent, deterministic=True, seed=ep)
             lengths.append(steps)
     finally:
         env.close()
@@ -106,8 +116,13 @@ def evaluate(agent, num_episodes=20):
 def make_gif(agent, out_path, seed, deterministic):
     env = DodgeEnv(render_mode="rgb_array")
     try:
-        env.reset(seed=seed)
-        steps, frames, _ = run_episode(env, agent, deterministic=deterministic, collect_frames=True)
+        steps, frames, _ = run_episode(
+            env,
+            agent,
+            deterministic=deterministic,
+            collect_frames=True,
+            seed=seed,
+        )
     finally:
         env.close()
     print(f"Episode lasted {steps} steps. Rendering {len(frames)} frames -> {out_path}")

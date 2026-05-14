@@ -25,6 +25,9 @@ def run_random_agent(num_episodes=20, render=False):
 
             if render:
                 env.render()
+                if env.closed_by_user:
+                    print("Window closed — stopping random baseline early.")
+                    break
 
             if terminated or truncated:
                 break
@@ -33,6 +36,8 @@ def run_random_agent(num_episodes=20, render=False):
         episode_rewards.append(total_reward)
         print(f"Episode {ep+1:3d}: steps = {steps:4d}, reward = {total_reward:6.1f}, "
               f"died = {terminated}")
+        if env.closed_by_user:
+            break
 
     env.close()
     lengths = np.array(episode_lengths)
