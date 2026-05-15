@@ -1,0 +1,1146 @@
+Resumed from ppo_dodge_3d_easy_best.pt (trained for 784384 prior steps)
+Removing stale ppo_dodge_3d_best.pt before this run.
+Will run 244 updates of 2048 steps = 499712 total steps
+Env: 3d | obs_dim 54 | n_actions 27
+Spawn distance: 220..320
+Checkpoint every 10 updates -> ppo_dodge_3d.pt
+
+ep     1 | step     166 | survived  166 | rollout 1/244
+ep     2 | step     870 | survived  704 | rollout 1/244
+ep     3 | step    1596 | survived  726 | rollout 1/244
+ep     4 | step    2008 | survived  412 | rollout 1/244
+=== upd    1/244 | step    2048 | mean_ep_len  502.0 | mean_ep_rew  502.0 | pg_loss -0.015 | v_loss 107.482 | ent 2.170 | clipfrac 0.166 | sps 4007 ===
+ep     5 | step    2186 | survived  178 | rollout 2/244
+ep     6 | step    3186 | survived 1000 | rollout 2/244
+ep     7 | step    3759 | survived  573 | rollout 2/244
+ep     8 | step    3938 | survived  179 | rollout 2/244
+=== upd    2/244 | step    4096 | mean_ep_len  492.2 | mean_ep_rew  492.2 | pg_loss +0.034 | v_loss 3.866 | ent 2.150 | clipfrac 0.095 | sps 4212 ===
+ep     9 | step    4633 | survived  695 | rollout 3/244
+ep    10 | step    5216 | survived  583 | rollout 3/244
+ep    11 | step    6135 | survived  919 | rollout 3/244
+=== upd    3/244 | step    6144 | mean_ep_len  557.7 | mean_ep_rew  557.7 | pg_loss -0.025 | v_loss 105.198 | ent 1.921 | clipfrac 0.183 | sps 4319 ===
+   ^ new best mean_ep_len 557.7 (saved -> ppo_dodge_3d_best.pt)
+ep    12 | step    6513 | survived  378 | rollout 4/244
+ep    13 | step    6965 | survived  452 | rollout 4/244
+ep    14 | step    7314 | survived  349 | rollout 4/244
+ep    15 | step    7790 | survived  476 | rollout 4/244
+ep    16 | step    8047 | survived  257 | rollout 4/244
+=== upd    4/244 | step    8192 | mean_ep_len  502.9 | mean_ep_rew  502.9 | pg_loss -0.025 | v_loss 126.989 | ent 1.767 | clipfrac 0.155 | sps 4339 ===
+ep    17 | step    8409 | survived  362 | rollout 5/244
+ep    18 | step    9409 | survived 1000 | rollout 5/244
+ep    19 | step    9561 | survived  152 | rollout 5/244
+=== upd    5/244 | step   10240 | mean_ep_len  503.2 | mean_ep_rew  503.2 | pg_loss -0.028 | v_loss 65.098 | ent 1.826 | clipfrac 0.183 | sps 4345 ===
+ep    20 | step   10462 | survived  901 | rollout 6/244
+ep    21 | step   10750 | survived  288 | rollout 6/244
+ep    22 | step   11094 | survived  344 | rollout 6/244
+ep    23 | step   11340 | survived  246 | rollout 6/244
+ep    24 | step   12106 | survived  766 | rollout 6/244
+=== upd    6/244 | step   12288 | mean_ep_len  504.4 | mean_ep_rew  504.4 | pg_loss +0.000 | v_loss 162.367 | ent 1.902 | clipfrac 0.128 | sps 4357 ===
+ep    25 | step   13106 | survived 1000 | rollout 7/244
+ep    26 | step   13439 | survived  333 | rollout 7/244
+ep    27 | step   13641 | survived  202 | rollout 7/244
+=== upd    7/244 | step   14336 | mean_ep_len  505.2 | mean_ep_rew  505.2 | pg_loss +0.036 | v_loss 82.473 | ent 1.982 | clipfrac 0.180 | sps 4367 ===
+ep    28 | step   14339 | survived  698 | rollout 8/244
+ep    29 | step   14612 | survived  273 | rollout 8/244
+ep    30 | step   15179 | survived  567 | rollout 8/244
+ep    31 | step   15653 | survived  474 | rollout 8/244
+ep    32 | step   15919 | survived  266 | rollout 8/244
+=== upd    8/244 | step   16384 | mean_ep_len  497.5 | mean_ep_rew  497.5 | pg_loss -0.009 | v_loss 124.412 | ent 1.839 | clipfrac 0.112 | sps 4376 ===
+ep    33 | step   16919 | survived 1000 | rollout 9/244
+ep    34 | step   17491 | survived  572 | rollout 9/244
+ep    35 | step   17937 | survived  446 | rollout 9/244
+ep    36 | step   18293 | survived  356 | rollout 9/244
+=== upd    9/244 | step   18432 | mean_ep_len  508.1 | mean_ep_rew  508.1 | pg_loss +0.049 | v_loss 129.327 | ent 1.986 | clipfrac 0.172 | sps 4384 ===
+ep    37 | step   19031 | survived  738 | rollout 10/244
+ep    38 | step   20031 | survived 1000 | rollout 10/244
+ep    39 | step   20305 | survived  274 | rollout 10/244
+=== upd   10/244 | step   20480 | mean_ep_len  520.6 | mean_ep_rew  520.6 | pg_loss +0.015 | v_loss 4.400 | ent 2.066 | clipfrac 0.124 | sps 4400 ===
+ep    40 | step   21096 | survived  791 | rollout 11/244
+ep    41 | step   21911 | survived  815 | rollout 11/244
+ep    42 | step   22092 | survived  181 | rollout 11/244
+=== upd   11/244 | step   22528 | mean_ep_len  526.0 | mean_ep_rew  526.0 | pg_loss -0.015 | v_loss 109.408 | ent 2.333 | clipfrac 0.208 | sps 4410 ===
+ep    43 | step   22653 | survived  561 | rollout 12/244
+ep    44 | step   23285 | survived  632 | rollout 12/244
+ep    45 | step   24228 | survived  943 | rollout 12/244
+ep    46 | step   24431 | survived  203 | rollout 12/244
+ep    47 | step   24566 | survived  135 | rollout 12/244
+=== upd   12/244 | step   24576 | mean_ep_len  522.7 | mean_ep_rew  522.7 | pg_loss -0.012 | v_loss 33.273 | ent 2.350 | clipfrac 0.149 | sps 4412 ===
+ep    48 | step   25209 | survived  643 | rollout 13/244
+ep    49 | step   25640 | survived  431 | rollout 13/244
+=== upd   13/244 | step   26624 | mean_ep_len  523.3 | mean_ep_rew  523.3 | pg_loss -0.054 | v_loss 54.569 | ent 2.308 | clipfrac 0.195 | sps 4422 ===
+ep    50 | step   26640 | survived 1000 | rollout 14/244
+ep    51 | step   26962 | survived  322 | rollout 14/244
+ep    52 | step   27184 | survived  222 | rollout 14/244
+ep    53 | step   27605 | survived  421 | rollout 14/244
+ep    54 | step   28448 | survived  843 | rollout 14/244
+=== upd   14/244 | step   28672 | mean_ep_len  528.8 | mean_ep_rew  528.8 | pg_loss -0.023 | v_loss 118.760 | ent 2.009 | clipfrac 0.206 | sps 4434 ===
+ep    55 | step   29448 | survived 1000 | rollout 15/244
+ep    56 | step   29967 | survived  519 | rollout 15/244
+ep    57 | step   30439 | survived  472 | rollout 15/244
+=== upd   15/244 | step   30720 | mean_ep_len  533.6 | mean_ep_rew  533.6 | pg_loss -0.028 | v_loss 84.594 | ent 2.169 | clipfrac 0.153 | sps 4367 ===
+ep    58 | step   30954 | survived  515 | rollout 16/244
+ep    59 | step   31228 | survived  274 | rollout 16/244
+ep    60 | step   31577 | survived  349 | rollout 16/244
+ep    61 | step   32316 | survived  739 | rollout 16/244
+ep    62 | step   32642 | survived  326 | rollout 16/244
+=== upd   16/244 | step   32768 | mean_ep_len  522.6 | mean_ep_rew  522.6 | pg_loss -0.039 | v_loss 28.353 | ent 2.242 | clipfrac 0.182 | sps 4368 ===
+ep    63 | step   33448 | survived  806 | rollout 17/244
+ep    64 | step   33963 | survived  515 | rollout 17/244
+ep    65 | step   34279 | survived  316 | rollout 17/244
+ep    66 | step   34811 | survived  532 | rollout 17/244
+=== upd   17/244 | step   34816 | mean_ep_len  535.3 | mean_ep_rew  535.3 | pg_loss -0.022 | v_loss 51.652 | ent 2.412 | clipfrac 0.159 | sps 4376 ===
+ep    67 | step   35085 | survived  274 | rollout 18/244
+ep    68 | step   35401 | survived  316 | rollout 18/244
+ep    69 | step   35867 | survived  466 | rollout 18/244
+ep    70 | step   36199 | survived  332 | rollout 18/244
+ep    71 | step   36853 | survived  654 | rollout 18/244
+=== upd   18/244 | step   36864 | mean_ep_len  522.1 | mean_ep_rew  522.1 | pg_loss -0.038 | v_loss 59.564 | ent 2.290 | clipfrac 0.150 | sps 4383 ===
+ep    72 | step   37515 | survived  662 | rollout 19/244
+ep    73 | step   37699 | survived  184 | rollout 19/244
+ep    74 | step   38655 | survived  956 | rollout 19/244
+ep    75 | step   38842 | survived  187 | rollout 19/244
+=== upd   19/244 | step   38912 | mean_ep_len  514.7 | mean_ep_rew  514.7 | pg_loss +0.004 | v_loss 65.652 | ent 2.436 | clipfrac 0.154 | sps 4388 ===
+ep    76 | step   39842 | survived 1000 | rollout 20/244
+ep    77 | step   40463 | survived  621 | rollout 20/244
+ep    78 | step   40629 | survived  166 | rollout 20/244
+=== upd   20/244 | step   40960 | mean_ep_len  525.8 | mean_ep_rew  525.8 | pg_loss -0.030 | v_loss 24.789 | ent 2.343 | clipfrac 0.150 | sps 4393 ===
+ep    79 | step   41229 | survived  600 | rollout 21/244
+ep    80 | step   41613 | survived  384 | rollout 21/244
+ep    81 | step   41848 | survived  235 | rollout 21/244
+ep    82 | step   42112 | survived  264 | rollout 21/244
+ep    83 | step   42803 | survived  691 | rollout 21/244
+=== upd   21/244 | step   43008 | mean_ep_len  517.7 | mean_ep_rew  517.7 | pg_loss -0.037 | v_loss 96.801 | ent 2.358 | clipfrac 0.199 | sps 4395 ===
+ep    84 | step   43151 | survived  348 | rollout 22/244
+ep    85 | step   43766 | survived  615 | rollout 22/244
+ep    86 | step   43976 | survived  210 | rollout 22/244
+ep    87 | step   44807 | survived  831 | rollout 22/244
+=== upd   22/244 | step   45056 | mean_ep_len  515.5 | mean_ep_rew  515.5 | pg_loss +0.012 | v_loss 77.457 | ent 2.493 | clipfrac 0.241 | sps 4394 ===
+ep    88 | step   45112 | survived  305 | rollout 23/244
+ep    89 | step   45384 | survived  272 | rollout 23/244
+ep    90 | step   45647 | survived  263 | rollout 23/244
+ep    91 | step   46126 | survived  479 | rollout 23/244
+ep    92 | step   46320 | survived  194 | rollout 23/244
+ep    93 | step   47039 | survived  719 | rollout 23/244
+=== upd   23/244 | step   47104 | mean_ep_len  487.7 | mean_ep_rew  487.7 | pg_loss -0.023 | v_loss 126.058 | ent 2.415 | clipfrac 0.188 | sps 4385 ===
+ep    94 | step   47273 | survived  234 | rollout 24/244
+ep    95 | step   48215 | survived  942 | rollout 24/244
+ep    96 | step   48648 | survived  433 | rollout 24/244
+ep    97 | step   48957 | survived  309 | rollout 24/244
+=== upd   24/244 | step   49152 | mean_ep_len  487.8 | mean_ep_rew  487.8 | pg_loss -0.024 | v_loss 216.364 | ent 2.515 | clipfrac 0.229 | sps 4381 ===
+ep    98 | step   49183 | survived  226 | rollout 25/244
+ep    99 | step   50183 | survived 1000 | rollout 25/244
+ep   100 | step   51183 | survived 1000 | rollout 25/244
+=== upd   25/244 | step   51200 | mean_ep_len  490.9 | mean_ep_rew  490.9 | pg_loss -0.022 | v_loss 72.186 | ent 2.325 | clipfrac 0.160 | sps 4388 ===
+ep   101 | step   51765 | survived  582 | rollout 26/244
+ep   102 | step   52243 | survived  478 | rollout 26/244
+ep   103 | step   53243 | survived 1000 | rollout 26/244
+=== upd   26/244 | step   53248 | mean_ep_len  512.8 | mean_ep_rew  512.8 | pg_loss -0.016 | v_loss 174.605 | ent 2.308 | clipfrac 0.180 | sps 4385 ===
+ep   104 | step   53877 | survived  634 | rollout 27/244
+ep   105 | step   54719 | survived  842 | rollout 27/244
+=== upd   27/244 | step   55296 | mean_ep_len  505.4 | mean_ep_rew  505.4 | pg_loss -0.012 | v_loss 93.182 | ent 2.401 | clipfrac 0.177 | sps 4388 ===
+ep   106 | step   55719 | survived 1000 | rollout 28/244
+ep   107 | step   56719 | survived 1000 | rollout 28/244
+ep   108 | step   57231 | survived  512 | rollout 28/244
+=== upd   28/244 | step   57344 | mean_ep_len  525.5 | mean_ep_rew  525.5 | pg_loss -0.022 | v_loss 20.725 | ent 2.318 | clipfrac 0.109 | sps 4389 ===
+ep   109 | step   58231 | survived 1000 | rollout 29/244
+ep   110 | step   58715 | survived  484 | rollout 29/244
+=== upd   29/244 | step   59392 | mean_ep_len  542.8 | mean_ep_rew  542.8 | pg_loss -0.031 | v_loss 36.606 | ent 2.364 | clipfrac 0.210 | sps 4391 ===
+ep   111 | step   59715 | survived 1000 | rollout 30/244
+ep   112 | step   59967 | survived  252 | rollout 30/244
+ep   113 | step   60443 | survived  476 | rollout 30/244
+ep   114 | step   61003 | survived  560 | rollout 30/244
+=== upd   30/244 | step   61440 | mean_ep_len  540.8 | mean_ep_rew  540.8 | pg_loss +0.001 | v_loss 16.183 | ent 2.371 | clipfrac 0.154 | sps 4375 ===
+ep   115 | step   61589 | survived  586 | rollout 31/244
+ep   116 | step   62589 | survived 1000 | rollout 31/244
+ep   117 | step   63089 | survived  500 | rollout 31/244
+=== upd   31/244 | step   63488 | mean_ep_len  560.1 | mean_ep_rew  560.1 | pg_loss -0.008 | v_loss 0.697 | ent 2.337 | clipfrac 0.193 | sps 4379 ===
+   ^ new best mean_ep_len 560.1 (saved -> ppo_dodge_3d_best.pt)
+ep   118 | step   63697 | survived  608 | rollout 32/244
+ep   119 | step   64697 | survived 1000 | rollout 32/244
+=== upd   32/244 | step   65536 | mean_ep_len  576.6 | mean_ep_rew  576.6 | pg_loss -0.031 | v_loss 2.600 | ent 2.441 | clipfrac 0.171 | sps 4383 ===
+   ^ new best mean_ep_len 576.6 (saved -> ppo_dodge_3d_best.pt)
+ep   120 | step   65618 | survived  921 | rollout 33/244
+ep   121 | step   66118 | survived  500 | rollout 33/244
+ep   122 | step   67118 | survived 1000 | rollout 33/244
+ep   123 | step   67557 | survived  439 | rollout 33/244
+=== upd   33/244 | step   67584 | mean_ep_len  597.2 | mean_ep_rew  597.2 | pg_loss +0.058 | v_loss 30.357 | ent 2.564 | clipfrac 0.236 | sps 4387 ===
+   ^ new best mean_ep_len 597.2 (saved -> ppo_dodge_3d_best.pt)
+ep   124 | step   67907 | survived  350 | rollout 34/244
+ep   125 | step   68484 | survived  577 | rollout 34/244
+ep   126 | step   69402 | survived  918 | rollout 34/244
+=== upd   34/244 | step   69632 | mean_ep_len  591.2 | mean_ep_rew  591.2 | pg_loss -0.036 | v_loss 5.496 | ent 2.323 | clipfrac 0.216 | sps 4386 ===
+ep   127 | step   70402 | survived 1000 | rollout 35/244
+ep   128 | step   71051 | survived  649 | rollout 35/244
+ep   129 | step   71567 | survived  516 | rollout 35/244
+=== upd   35/244 | step   71680 | mean_ep_len  606.8 | mean_ep_rew  606.8 | pg_loss -0.037 | v_loss 184.945 | ent 2.428 | clipfrac 0.191 | sps 4385 ===
+   ^ new best mean_ep_len 606.8 (saved -> ppo_dodge_3d_best.pt)
+ep   130 | step   72567 | survived 1000 | rollout 36/244
+ep   131 | step   72743 | survived  176 | rollout 36/244
+ep   132 | step   73480 | survived  737 | rollout 36/244
+=== upd   36/244 | step   73728 | mean_ep_len  627.4 | mean_ep_rew  627.4 | pg_loss -0.003 | v_loss 52.795 | ent 2.351 | clipfrac 0.175 | sps 4388 ===
+   ^ new best mean_ep_len 627.4 (saved -> ppo_dodge_3d_best.pt)
+ep   133 | step   73886 | survived  406 | rollout 37/244
+ep   134 | step   74088 | survived  202 | rollout 37/244
+ep   135 | step   74407 | survived  319 | rollout 37/244
+ep   136 | step   75266 | survived  859 | rollout 37/244
+ep   137 | step   75674 | survived  408 | rollout 37/244
+=== upd   37/244 | step   75776 | mean_ep_len  617.3 | mean_ep_rew  617.3 | pg_loss -0.021 | v_loss 115.980 | ent 2.378 | clipfrac 0.132 | sps 4391 ===
+ep   138 | step   76590 | survived  916 | rollout 38/244
+ep   139 | step   76795 | survived  205 | rollout 38/244
+ep   140 | step   77795 | survived 1000 | rollout 38/244
+=== upd   38/244 | step   77824 | mean_ep_len  643.0 | mean_ep_rew  643.0 | pg_loss -0.036 | v_loss 22.177 | ent 2.452 | clipfrac 0.200 | sps 4388 ===
+   ^ new best mean_ep_len 643.0 (saved -> ppo_dodge_3d_best.pt)
+ep   141 | step   78291 | survived  496 | rollout 39/244
+ep   142 | step   78646 | survived  355 | rollout 39/244
+ep   143 | step   79464 | survived  818 | rollout 39/244
+ep   144 | step   79729 | survived  265 | rollout 39/244
+=== upd   39/244 | step   79872 | mean_ep_len  649.1 | mean_ep_rew  649.1 | pg_loss +0.050 | v_loss 3.831 | ent 2.312 | clipfrac 0.157 | sps 4391 ===
+   ^ new best mean_ep_len 649.1 (saved -> ppo_dodge_3d_best.pt)
+ep   145 | step   80729 | survived 1000 | rollout 40/244
+ep   146 | step   80901 | survived  172 | rollout 40/244
+ep   147 | step   81153 | survived  252 | rollout 40/244
+ep   148 | step   81656 | survived  503 | rollout 40/244
+ep   149 | step   81772 | survived  116 | rollout 40/244
+=== upd   40/244 | step   81920 | mean_ep_len  631.8 | mean_ep_rew  631.8 | pg_loss +0.026 | v_loss 100.016 | ent 2.339 | clipfrac 0.157 | sps 4391 ===
+ep   150 | step   81999 | survived  227 | rollout 41/244
+ep   151 | step   82879 | survived  880 | rollout 41/244
+ep   152 | step   83355 | survived  476 | rollout 41/244
+=== upd   41/244 | step   83968 | mean_ep_len  622.2 | mean_ep_rew  622.2 | pg_loss -0.009 | v_loss 38.883 | ent 2.300 | clipfrac 0.158 | sps 4394 ===
+ep   153 | step   84355 | survived 1000 | rollout 42/244
+ep   154 | step   84625 | survived  270 | rollout 42/244
+ep   155 | step   85466 | survived  841 | rollout 42/244
+=== upd   42/244 | step   86016 | mean_ep_len  614.9 | mean_ep_rew  614.9 | pg_loss -0.020 | v_loss 0.576 | ent 2.301 | clipfrac 0.159 | sps 4392 ===
+ep   156 | step   86126 | survived  660 | rollout 43/244
+ep   157 | step   86433 | survived  307 | rollout 43/244
+ep   158 | step   86789 | survived  356 | rollout 43/244
+ep   159 | step   87440 | survived  651 | rollout 43/244
+ep   160 | step   87868 | survived  428 | rollout 43/244
+=== upd   43/244 | step   88064 | mean_ep_len  583.1 | mean_ep_rew  583.1 | pg_loss -0.022 | v_loss 99.163 | ent 2.257 | clipfrac 0.175 | sps 4386 ===
+ep   161 | step   88282 | survived  414 | rollout 44/244
+ep   162 | step   88518 | survived  236 | rollout 44/244
+ep   163 | step   88834 | survived  316 | rollout 44/244
+ep   164 | step   89834 | survived 1000 | rollout 44/244
+=== upd   44/244 | step   90112 | mean_ep_len  576.6 | mean_ep_rew  576.6 | pg_loss -0.028 | v_loss 107.145 | ent 2.236 | clipfrac 0.170 | sps 4385 ===
+ep   165 | step   90834 | survived 1000 | rollout 45/244
+ep   166 | step   91151 | survived  317 | rollout 45/244
+ep   167 | step   92019 | survived  868 | rollout 45/244
+=== upd   45/244 | step   92160 | mean_ep_len  578.6 | mean_ep_rew  578.6 | pg_loss +0.002 | v_loss 271.902 | ent 2.328 | clipfrac 0.192 | sps 4385 ===
+ep   168 | step   92428 | survived  409 | rollout 46/244
+ep   169 | step   92744 | survived  316 | rollout 46/244
+ep   170 | step   93105 | survived  361 | rollout 46/244
+ep   171 | step   93782 | survived  677 | rollout 46/244
+ep   172 | step   93926 | survived  144 | rollout 46/244
+ep   173 | step   94093 | survived  167 | rollout 46/244
+=== upd   46/244 | step   94208 | mean_ep_len  530.7 | mean_ep_rew  530.7 | pg_loss -0.029 | v_loss 38.339 | ent 2.265 | clipfrac 0.197 | sps 4378 ===
+ep   174 | step   94618 | survived  525 | rollout 47/244
+ep   175 | step   94833 | survived  215 | rollout 47/244
+ep   176 | step   95466 | survived  633 | rollout 47/244
+=== upd   47/244 | step   96256 | mean_ep_len  521.3 | mean_ep_rew  521.3 | pg_loss +0.023 | v_loss 126.990 | ent 2.443 | clipfrac 0.210 | sps 4379 ===
+ep   177 | step   96466 | survived 1000 | rollout 48/244
+ep   178 | step   97466 | survived 1000 | rollout 48/244
+ep   179 | step   98063 | survived  597 | rollout 48/244
+=== upd   48/244 | step   98304 | mean_ep_len  529.9 | mean_ep_rew  529.9 | pg_loss +0.008 | v_loss 69.144 | ent 2.395 | clipfrac 0.203 | sps 4380 ===
+ep   180 | step   98636 | survived  573 | rollout 49/244
+ep   181 | step   98891 | survived  255 | rollout 49/244
+ep   182 | step   99177 | survived  286 | rollout 49/244
+ep   183 | step   99594 | survived  417 | rollout 49/244
+ep   184 | step   99882 | survived  288 | rollout 49/244
+=== upd   49/244 | step  100352 | mean_ep_len  515.9 | mean_ep_rew  515.9 | pg_loss -0.034 | v_loss 27.945 | ent 2.281 | clipfrac 0.237 | sps 4381 ===
+ep   185 | step  100407 | survived  525 | rollout 50/244
+ep   186 | step  100664 | survived  257 | rollout 50/244
+ep   187 | step  100973 | survived  309 | rollout 50/244
+ep   188 | step  101582 | survived  609 | rollout 50/244
+ep   189 | step  102363 | survived  781 | rollout 50/244
+=== upd   50/244 | step  102400 | mean_ep_len  511.4 | mean_ep_rew  511.4 | pg_loss +0.014 | v_loss 67.378 | ent 2.263 | clipfrac 0.205 | sps 4384 ===
+ep   190 | step  102864 | survived  501 | rollout 51/244
+ep   191 | step  103864 | survived 1000 | rollout 51/244
+=== upd   51/244 | step  104448 | mean_ep_len  511.5 | mean_ep_rew  511.5 | pg_loss +0.002 | v_loss 6.897 | ent 2.442 | clipfrac 0.240 | sps 4384 ===
+ep   192 | step  104532 | survived  668 | rollout 52/244
+ep   193 | step  105532 | survived 1000 | rollout 52/244
+ep   194 | step  105922 | survived  390 | rollout 52/244
+=== upd   52/244 | step  106496 | mean_ep_len  523.9 | mean_ep_rew  523.9 | pg_loss -0.035 | v_loss 125.930 | ent 2.324 | clipfrac 0.196 | sps 4384 ===
+ep   195 | step  106922 | survived 1000 | rollout 53/244
+ep   196 | step  107669 | survived  747 | rollout 53/244
+ep   197 | step  108078 | survived  409 | rollout 53/244
+ep   198 | step  108528 | survived  450 | rollout 53/244
+=== upd   53/244 | step  108544 | mean_ep_len  537.4 | mean_ep_rew  537.4 | pg_loss -0.008 | v_loss 140.957 | ent 2.454 | clipfrac 0.180 | sps 4385 ===
+ep   199 | step  109528 | survived 1000 | rollout 54/244
+ep   200 | step  109945 | survived  417 | rollout 54/244
+=== upd   54/244 | step  110592 | mean_ep_len  558.9 | mean_ep_rew  558.9 | pg_loss -0.012 | v_loss 46.942 | ent 2.386 | clipfrac 0.231 | sps 4387 ===
+ep   201 | step  110945 | survived 1000 | rollout 55/244
+ep   202 | step  111403 | survived  458 | rollout 55/244
+ep   203 | step  112403 | survived 1000 | rollout 55/244
+=== upd   55/244 | step  112640 | mean_ep_len  561.0 | mean_ep_rew  561.0 | pg_loss +0.056 | v_loss 63.152 | ent 2.367 | clipfrac 0.161 | sps 4388 ===
+ep   204 | step  113212 | survived  809 | rollout 56/244
+ep   205 | step  113649 | survived  437 | rollout 56/244
+ep   206 | step  114354 | survived  705 | rollout 56/244
+=== upd   56/244 | step  114688 | mean_ep_len  564.6 | mean_ep_rew  564.6 | pg_loss +0.013 | v_loss 79.849 | ent 2.322 | clipfrac 0.166 | sps 4390 ===
+ep   207 | step  114925 | survived  571 | rollout 57/244
+ep   208 | step  115337 | survived  412 | rollout 57/244
+ep   209 | step  115653 | survived  316 | rollout 57/244
+ep   210 | step  115887 | survived  234 | rollout 57/244
+ep   211 | step  116155 | survived  268 | rollout 57/244
+=== upd   57/244 | step  116736 | mean_ep_len  557.5 | mean_ep_rew  557.5 | pg_loss -0.036 | v_loss 248.189 | ent 2.211 | clipfrac 0.132 | sps 4373 ===
+ep   212 | step  116796 | survived  641 | rollout 58/244
+ep   213 | step  117029 | survived  233 | rollout 58/244
+ep   214 | step  117581 | survived  552 | rollout 58/244
+ep   215 | step  117905 | survived  324 | rollout 58/244
+ep   216 | step  118257 | survived  352 | rollout 58/244
+=== upd   58/244 | step  118784 | mean_ep_len  542.1 | mean_ep_rew  542.1 | pg_loss -0.021 | v_loss 18.746 | ent 2.003 | clipfrac 0.169 | sps 4374 ===
+ep   217 | step  118998 | survived  741 | rollout 59/244
+ep   218 | step  119827 | survived  829 | rollout 59/244
+ep   219 | step  120033 | survived  206 | rollout 59/244
+=== upd   59/244 | step  120832 | mean_ep_len  545.8 | mean_ep_rew  545.8 | pg_loss -0.014 | v_loss 113.551 | ent 2.266 | clipfrac 0.149 | sps 4373 ===
+ep   220 | step  121033 | survived 1000 | rollout 60/244
+ep   221 | step  121503 | survived  470 | rollout 60/244
+ep   222 | step  122153 | survived  650 | rollout 60/244
+=== upd   60/244 | step  122880 | mean_ep_len  564.5 | mean_ep_rew  564.5 | pg_loss +0.002 | v_loss 17.049 | ent 2.102 | clipfrac 0.192 | sps 4375 ===
+ep   223 | step  123153 | survived 1000 | rollout 61/244
+ep   224 | step  123891 | survived  738 | rollout 61/244
+ep   225 | step  124522 | survived  631 | rollout 61/244
+=== upd   61/244 | step  124928 | mean_ep_len  593.8 | mean_ep_rew  593.8 | pg_loss -0.048 | v_loss 143.580 | ent 2.194 | clipfrac 0.162 | sps 4374 ===
+ep   226 | step  125522 | survived 1000 | rollout 62/244
+ep   227 | step  126285 | survived  763 | rollout 62/244
+ep   228 | step  126896 | survived  611 | rollout 62/244
+=== upd   62/244 | step  126976 | mean_ep_len  588.6 | mean_ep_rew  588.6 | pg_loss +0.022 | v_loss 104.734 | ent 2.289 | clipfrac 0.113 | sps 4376 ===
+ep   229 | step  127175 | survived  279 | rollout 63/244
+ep   230 | step  127569 | survived  394 | rollout 63/244
+ep   231 | step  127906 | survived  337 | rollout 63/244
+ep   232 | step  128906 | survived 1000 | rollout 63/244
+=== upd   63/244 | step  129024 | mean_ep_len  594.6 | mean_ep_rew  594.6 | pg_loss -0.022 | v_loss 94.097 | ent 2.255 | clipfrac 0.174 | sps 4377 ===
+ep   233 | step  129221 | survived  315 | rollout 64/244
+ep   234 | step  129632 | survived  411 | rollout 64/244
+ep   235 | step  130632 | survived 1000 | rollout 64/244
+ep   236 | step  131006 | survived  374 | rollout 64/244
+=== upd   64/244 | step  131072 | mean_ep_len  606.8 | mean_ep_rew  606.8 | pg_loss +0.024 | v_loss 65.546 | ent 2.258 | clipfrac 0.144 | sps 4378 ===
+ep   237 | step  131933 | survived  927 | rollout 65/244
+ep   238 | step  132815 | survived  882 | rollout 65/244
+=== upd   65/244 | step  133120 | mean_ep_len  624.7 | mean_ep_rew  624.7 | pg_loss +0.006 | v_loss 16.496 | ent 2.402 | clipfrac 0.184 | sps 4380 ===
+ep   239 | step  133714 | survived  899 | rollout 66/244
+ep   240 | step  134590 | survived  876 | rollout 66/244
+ep   241 | step  134809 | survived  219 | rollout 66/244
+ep   242 | step  135072 | survived  263 | rollout 66/244
+=== upd   66/244 | step  135168 | mean_ep_len  610.8 | mean_ep_rew  610.8 | pg_loss -0.033 | v_loss 106.259 | ent 2.366 | clipfrac 0.143 | sps 4382 ===
+ep   243 | step  136072 | survived 1000 | rollout 67/244
+ep   244 | step  136444 | survived  372 | rollout 67/244
+ep   245 | step  136813 | survived  369 | rollout 67/244
+=== upd   67/244 | step  137216 | mean_ep_len  597.8 | mean_ep_rew  597.8 | pg_loss -0.026 | v_loss 42.120 | ent 2.373 | clipfrac 0.218 | sps 4384 ===
+ep   246 | step  137813 | survived 1000 | rollout 68/244
+ep   247 | step  138285 | survived  472 | rollout 68/244
+ep   248 | step  138643 | survived  358 | rollout 68/244
+=== upd   68/244 | step  139264 | mean_ep_len  602.3 | mean_ep_rew  602.3 | pg_loss -0.012 | v_loss 8.296 | ent 2.366 | clipfrac 0.197 | sps 4385 ===
+ep   249 | step  139643 | survived 1000 | rollout 69/244
+ep   250 | step  140181 | survived  538 | rollout 69/244
+ep   251 | step  140843 | survived  662 | rollout 69/244
+ep   252 | step  141058 | survived  215 | rollout 69/244
+=== upd   69/244 | step  141312 | mean_ep_len  593.1 | mean_ep_rew  593.1 | pg_loss -0.009 | v_loss 97.586 | ent 2.353 | clipfrac 0.166 | sps 4386 ===
+ep   253 | step  141378 | survived  320 | rollout 70/244
+ep   254 | step  142378 | survived 1000 | rollout 70/244
+ep   255 | step  142756 | survived  378 | rollout 70/244
+ep   256 | step  142984 | survived  228 | rollout 70/244
+=== upd   70/244 | step  143360 | mean_ep_len  572.6 | mean_ep_rew  572.6 | pg_loss -0.025 | v_loss 92.121 | ent 2.433 | clipfrac 0.158 | sps 4384 ===
+ep   257 | step  143984 | survived 1000 | rollout 71/244
+ep   258 | step  144749 | survived  765 | rollout 71/244
+=== upd   71/244 | step  145408 | mean_ep_len  588.2 | mean_ep_rew  588.2 | pg_loss -0.017 | v_loss 6.386 | ent 2.516 | clipfrac 0.204 | sps 4354 ===
+ep   259 | step  145749 | survived 1000 | rollout 72/244
+ep   260 | step  146749 | survived 1000 | rollout 72/244
+ep   261 | step  147126 | survived  377 | rollout 72/244
+=== upd   72/244 | step  147456 | mean_ep_len  619.4 | mean_ep_rew  619.4 | pg_loss +0.030 | v_loss 82.084 | ent 2.441 | clipfrac 0.184 | sps 4339 ===
+ep   262 | step  147956 | survived  830 | rollout 73/244
+ep   263 | step  148598 | survived  642 | rollout 73/244
+=== upd   73/244 | step  149504 | mean_ep_len  631.4 | mean_ep_rew  631.4 | pg_loss +0.042 | v_loss 0.093 | ent 2.473 | clipfrac 0.202 | sps 4322 ===
+ep   264 | step  149598 | survived 1000 | rollout 74/244
+ep   265 | step  149923 | survived  325 | rollout 74/244
+ep   266 | step  150405 | survived  482 | rollout 74/244
+ep   267 | step  150940 | survived  535 | rollout 74/244
+ep   268 | step  151351 | survived  411 | rollout 74/244
+=== upd   74/244 | step  151552 | mean_ep_len  630.5 | mean_ep_rew  630.5 | pg_loss -0.035 | v_loss 86.230 | ent 2.290 | clipfrac 0.223 | sps 4287 ===
+ep   269 | step  151785 | survived  434 | rollout 75/244
+ep   270 | step  151987 | survived  202 | rollout 75/244
+ep   271 | step  152987 | survived 1000 | rollout 75/244
+=== upd   75/244 | step  153600 | mean_ep_len  629.7 | mean_ep_rew  629.7 | pg_loss -0.020 | v_loss 117.554 | ent 2.419 | clipfrac 0.139 | sps 4278 ===
+ep   272 | step  153987 | survived 1000 | rollout 76/244
+ep   273 | step  154723 | survived  736 | rollout 76/244
+ep   274 | step  155220 | survived  497 | rollout 76/244
+ep   275 | step  155460 | survived  240 | rollout 76/244
+=== upd   76/244 | step  155648 | mean_ep_len  618.8 | mean_ep_rew  618.8 | pg_loss -0.035 | v_loss 15.879 | ent 2.300 | clipfrac 0.161 | sps 4281 ===
+ep   276 | step  156284 | survived  824 | rollout 77/244
+ep   277 | step  156749 | survived  465 | rollout 77/244
+=== upd   77/244 | step  157696 | mean_ep_len  609.3 | mean_ep_rew  609.3 | pg_loss -0.031 | v_loss 28.724 | ent 2.404 | clipfrac 0.255 | sps 4283 ===
+ep   278 | step  157749 | survived 1000 | rollout 78/244
+ep   279 | step  158749 | survived 1000 | rollout 78/244
+=== upd   78/244 | step  159744 | mean_ep_len  631.5 | mean_ep_rew  631.5 | pg_loss +0.008 | v_loss 46.054 | ent 2.424 | clipfrac 0.171 | sps 4281 ===
+ep   280 | step  159749 | survived 1000 | rollout 79/244
+ep   281 | step  160003 | survived  254 | rollout 79/244
+ep   282 | step  160516 | survived  513 | rollout 79/244
+ep   283 | step  161516 | survived 1000 | rollout 79/244
+=== upd   79/244 | step  161792 | mean_ep_len  645.9 | mean_ep_rew  645.9 | pg_loss +0.016 | v_loss 44.721 | ent 2.294 | clipfrac 0.175 | sps 4279 ===
+ep   284 | step  161804 | survived  288 | rollout 80/244
+ep   285 | step  162266 | survived  462 | rollout 80/244
+ep   286 | step  162834 | survived  568 | rollout 80/244
+ep   287 | step  163382 | survived  548 | rollout 80/244
+ep   288 | step  163837 | survived  455 | rollout 80/244
+=== upd   80/244 | step  163840 | mean_ep_len  620.4 | mean_ep_rew  620.4 | pg_loss -0.012 | v_loss 129.028 | ent 2.249 | clipfrac 0.163 | sps 4276 ===
+ep   289 | step  164837 | survived 1000 | rollout 81/244
+ep   290 | step  165056 | survived  219 | rollout 81/244
+=== upd   81/244 | step  165888 | mean_ep_len  609.3 | mean_ep_rew  609.3 | pg_loss -0.001 | v_loss 45.864 | ent 2.262 | clipfrac 0.170 | sps 4271 ===
+ep   291 | step  166056 | survived 1000 | rollout 82/244
+ep   292 | step  167056 | survived 1000 | rollout 82/244
+ep   293 | step  167240 | survived  184 | rollout 82/244
+ep   294 | step  167600 | survived  360 | rollout 82/244
+=== upd   82/244 | step  167936 | mean_ep_len  623.1 | mean_ep_rew  623.1 | pg_loss +0.038 | v_loss 110.742 | ent 2.284 | clipfrac 0.206 | sps 4272 ===
+ep   295 | step  168043 | survived  443 | rollout 83/244
+ep   296 | step  168461 | survived  418 | rollout 83/244
+ep   297 | step  168863 | survived  402 | rollout 83/244
+ep   298 | step  169136 | survived  273 | rollout 83/244
+ep   299 | step  169340 | survived  204 | rollout 83/244
+ep   300 | step  169847 | survived  507 | rollout 83/244
+=== upd   83/244 | step  169984 | mean_ep_len  593.3 | mean_ep_rew  593.3 | pg_loss -0.031 | v_loss 61.129 | ent 2.060 | clipfrac 0.183 | sps 4274 ===
+ep   301 | step  170094 | survived  247 | rollout 84/244
+ep   302 | step  170406 | survived  312 | rollout 84/244
+ep   303 | step  171005 | survived  599 | rollout 84/244
+ep   304 | step  172005 | survived 1000 | rollout 84/244
+=== upd   84/244 | step  172032 | mean_ep_len  592.5 | mean_ep_rew  592.5 | pg_loss -0.008 | v_loss 44.501 | ent 2.383 | clipfrac 0.159 | sps 4272 ===
+ep   305 | step  172341 | survived  336 | rollout 85/244
+ep   306 | step  173217 | survived  876 | rollout 85/244
+ep   307 | step  173593 | survived  376 | rollout 85/244
+=== upd   85/244 | step  174080 | mean_ep_len  592.2 | mean_ep_rew  592.2 | pg_loss -0.025 | v_loss 66.501 | ent 2.404 | clipfrac 0.184 | sps 4269 ===
+ep   308 | step  174593 | survived 1000 | rollout 86/244
+ep   309 | step  174874 | survived  281 | rollout 86/244
+ep   310 | step  175683 | survived  809 | rollout 86/244
+=== upd   86/244 | step  176128 | mean_ep_len  578.7 | mean_ep_rew  578.7 | pg_loss +0.014 | v_loss 1.611 | ent 2.251 | clipfrac 0.215 | sps 4267 ===
+ep   311 | step  176187 | survived  504 | rollout 87/244
+ep   312 | step  176831 | survived  644 | rollout 87/244
+ep   313 | step  177831 | survived 1000 | rollout 87/244
+=== upd   87/244 | step  178176 | mean_ep_len  584.7 | mean_ep_rew  584.7 | pg_loss -0.025 | v_loss 23.913 | ent 2.427 | clipfrac 0.226 | sps 4268 ===
+ep   314 | step  178595 | survived  764 | rollout 88/244
+ep   315 | step  179537 | survived  942 | rollout 88/244
+ep   316 | step  179875 | survived  338 | rollout 88/244
+=== upd   88/244 | step  180224 | mean_ep_len  589.4 | mean_ep_rew  589.4 | pg_loss -0.039 | v_loss 2.543 | ent 2.407 | clipfrac 0.188 | sps 4256 ===
+ep   317 | step  180875 | survived 1000 | rollout 89/244
+ep   318 | step  181061 | survived  186 | rollout 89/244
+ep   319 | step  181468 | survived  407 | rollout 89/244
+ep   320 | step  181793 | survived  325 | rollout 89/244
+=== upd   89/244 | step  182272 | mean_ep_len  596.1 | mean_ep_rew  596.1 | pg_loss -0.027 | v_loss 58.206 | ent 2.161 | clipfrac 0.199 | sps 4258 ===
+ep   321 | step  182505 | survived  712 | rollout 90/244
+ep   322 | step  182864 | survived  359 | rollout 90/244
+ep   323 | step  183180 | survived  316 | rollout 90/244
+ep   324 | step  184180 | survived 1000 | rollout 90/244
+=== upd   90/244 | step  184320 | mean_ep_len  579.2 | mean_ep_rew  579.2 | pg_loss -0.033 | v_loss 39.542 | ent 2.542 | clipfrac 0.158 | sps 4259 ===
+ep   325 | step  184392 | survived  212 | rollout 91/244
+ep   326 | step  185072 | survived  680 | rollout 91/244
+ep   327 | step  185724 | survived  652 | rollout 91/244
+=== upd   91/244 | step  186368 | mean_ep_len  579.5 | mean_ep_rew  579.5 | pg_loss -0.032 | v_loss 52.753 | ent 2.464 | clipfrac 0.184 | sps 4260 ===
+ep   328 | step  186724 | survived 1000 | rollout 92/244
+ep   329 | step  187315 | survived  591 | rollout 92/244
+ep   330 | step  187489 | survived  174 | rollout 92/244
+=== upd   92/244 | step  188416 | mean_ep_len  554.8 | mean_ep_rew  554.8 | pg_loss -0.036 | v_loss 29.475 | ent 2.572 | clipfrac 0.165 | sps 4261 ===
+ep   331 | step  188489 | survived 1000 | rollout 93/244
+ep   332 | step  188662 | survived  173 | rollout 93/244
+ep   333 | step  189278 | survived  616 | rollout 93/244
+ep   334 | step  189465 | survived  187 | rollout 93/244
+ep   335 | step  189891 | survived  426 | rollout 93/244
+=== upd   93/244 | step  190464 | mean_ep_len  552.5 | mean_ep_rew  552.5 | pg_loss -0.003 | v_loss 141.375 | ent 2.233 | clipfrac 0.190 | sps 4264 ===
+ep   336 | step  190891 | survived 1000 | rollout 94/244
+ep   337 | step  191685 | survived  794 | rollout 94/244
+=== upd   94/244 | step  192512 | mean_ep_len  566.1 | mean_ep_rew  566.1 | pg_loss -0.040 | v_loss 75.873 | ent 2.594 | clipfrac 0.233 | sps 4267 ===
+ep   338 | step  192620 | survived  935 | rollout 95/244
+ep   339 | step  192792 | survived  172 | rollout 95/244
+ep   340 | step  193792 | survived 1000 | rollout 95/244
+=== upd   95/244 | step  194560 | mean_ep_len  574.7 | mean_ep_rew  574.7 | pg_loss -0.039 | v_loss 140.444 | ent 2.373 | clipfrac 0.206 | sps 4269 ===
+ep   341 | step  194792 | survived 1000 | rollout 96/244
+ep   342 | step  195114 | survived  322 | rollout 96/244
+ep   343 | step  195692 | survived  578 | rollout 96/244
+ep   344 | step  195903 | survived  211 | rollout 96/244
+ep   345 | step  196242 | survived  339 | rollout 96/244
+ep   346 | step  196565 | survived  323 | rollout 96/244
+=== upd   96/244 | step  196608 | mean_ep_len  562.1 | mean_ep_rew  562.1 | pg_loss -0.060 | v_loss 45.310 | ent 2.201 | clipfrac 0.211 | sps 4271 ===
+ep   347 | step  197068 | survived  503 | rollout 97/244
+ep   348 | step  198068 | survived 1000 | rollout 97/244
+ep   349 | step  198407 | survived  339 | rollout 97/244
+=== upd   97/244 | step  198656 | mean_ep_len  581.3 | mean_ep_rew  581.3 | pg_loss +0.014 | v_loss 92.849 | ent 2.138 | clipfrac 0.159 | sps 4273 ===
+ep   350 | step  198837 | survived  430 | rollout 98/244
+ep   351 | step  199636 | survived  799 | rollout 98/244
+ep   352 | step  199864 | survived  228 | rollout 98/244
+ep   353 | step  200135 | survived  271 | rollout 98/244
+=== upd   98/244 | step  200704 | mean_ep_len  582.6 | mean_ep_rew  582.6 | pg_loss -0.016 | v_loss 8.574 | ent 2.166 | clipfrac 0.152 | sps 4275 ===
+ep   354 | step  200738 | survived  603 | rollout 99/244
+ep   355 | step  201404 | survived  666 | rollout 99/244
+ep   356 | step  201980 | survived  576 | rollout 99/244
+ep   357 | step  202020 | survived   40 | rollout 99/244
+ep   358 | step  202364 | survived  344 | rollout 99/244
+=== upd   99/244 | step  202752 | mean_ep_len  555.4 | mean_ep_rew  555.4 | pg_loss -0.006 | v_loss 83.316 | ent 2.142 | clipfrac 0.280 | sps 4278 ===
+ep   359 | step  202812 | survived  448 | rollout 100/244
+ep   360 | step  203751 | survived  939 | rollout 100/244
+ep   361 | step  204129 | survived  378 | rollout 100/244
+ep   362 | step  204421 | survived  292 | rollout 100/244
+ep   363 | step  204612 | survived  191 | rollout 100/244
+ep   364 | step  204749 | survived  137 | rollout 100/244
+=== upd  100/244 | step  204800 | mean_ep_len  523.1 | mean_ep_rew  523.1 | pg_loss -0.016 | v_loss 45.339 | ent 2.130 | clipfrac 0.164 | sps 4280 ===
+ep   365 | step  205749 | survived 1000 | rollout 101/244
+ep   366 | step  205946 | survived  197 | rollout 101/244
+ep   367 | step  206305 | survived  359 | rollout 101/244
+=== upd  101/244 | step  206848 | mean_ep_len  508.6 | mean_ep_rew  508.6 | pg_loss -0.001 | v_loss 45.117 | ent 2.108 | clipfrac 0.182 | sps 4281 ===
+ep   368 | step  206861 | survived  556 | rollout 102/244
+ep   369 | step  207389 | survived  528 | rollout 102/244
+ep   370 | step  208035 | survived  646 | rollout 102/244
+ep   371 | step  208844 | survived  809 | rollout 102/244
+=== upd  102/244 | step  208896 | mean_ep_len  526.8 | mean_ep_rew  526.8 | pg_loss +0.002 | v_loss 80.177 | ent 2.187 | clipfrac 0.207 | sps 4276 ===
+ep   372 | step  209844 | survived 1000 | rollout 103/244
+ep   373 | step  210844 | survived 1000 | rollout 103/244
+=== upd  103/244 | step  210944 | mean_ep_len  553.3 | mean_ep_rew  553.3 | pg_loss -0.036 | v_loss 6.088 | ent 2.403 | clipfrac 0.213 | sps 4279 ===
+ep   374 | step  211262 | survived  418 | rollout 104/244
+ep   375 | step  211960 | survived  698 | rollout 104/244
+ep   376 | step  212613 | survived  653 | rollout 104/244
+ep   377 | step  212907 | survived  294 | rollout 104/244
+=== upd  104/244 | step  212992 | mean_ep_len  543.7 | mean_ep_rew  543.7 | pg_loss -0.016 | v_loss 78.467 | ent 2.193 | clipfrac 0.172 | sps 4280 ===
+ep   378 | step  213277 | survived  370 | rollout 105/244
+ep   379 | step  214277 | survived 1000 | rollout 105/244
+ep   380 | step  214969 | survived  692 | rollout 105/244
+ep   381 | step  215012 | survived   43 | rollout 105/244
+=== upd  105/244 | step  215040 | mean_ep_len  530.5 | mean_ep_rew  530.5 | pg_loss -0.017 | v_loss 93.433 | ent 2.494 | clipfrac 0.162 | sps 4282 ===
+ep   382 | step  215547 | survived  535 | rollout 106/244
+ep   383 | step  216547 | survived 1000 | rollout 106/244
+ep   384 | step  216837 | survived  290 | rollout 106/244
+=== upd  106/244 | step  217088 | mean_ep_len  547.4 | mean_ep_rew  547.4 | pg_loss -0.009 | v_loss 11.036 | ent 2.305 | clipfrac 0.199 | sps 4284 ===
+ep   385 | step  217142 | survived  305 | rollout 107/244
+ep   386 | step  217505 | survived  363 | rollout 107/244
+ep   387 | step  218385 | survived  880 | rollout 107/244
+ep   388 | step  218952 | survived  567 | rollout 107/244
+=== upd  107/244 | step  219136 | mean_ep_len  526.6 | mean_ep_rew  526.6 | pg_loss -0.030 | v_loss 120.197 | ent 1.946 | clipfrac 0.167 | sps 4285 ===
+ep   389 | step  219357 | survived  405 | rollout 108/244
+ep   390 | step  220134 | survived  777 | rollout 108/244
+ep   391 | step  221134 | survived 1000 | rollout 108/244
+=== upd  108/244 | step  221184 | mean_ep_len  526.8 | mean_ep_rew  526.8 | pg_loss -0.027 | v_loss 72.301 | ent 2.168 | clipfrac 0.164 | sps 4287 ===
+ep   392 | step  222134 | survived 1000 | rollout 109/244
+ep   393 | step  222564 | survived  430 | rollout 109/244
+ep   394 | step  222702 | survived  138 | rollout 109/244
+=== upd  109/244 | step  223232 | mean_ep_len  536.0 | mean_ep_rew  536.0 | pg_loss -0.015 | v_loss 137.613 | ent 1.987 | clipfrac 0.146 | sps 4289 ===
+ep   395 | step  223348 | survived  646 | rollout 110/244
+ep   396 | step  224348 | survived 1000 | rollout 110/244
+=== upd  110/244 | step  225280 | mean_ep_len  555.7 | mean_ep_rew  555.7 | pg_loss -0.036 | v_loss 0.982 | ent 2.568 | clipfrac 0.158 | sps 4291 ===
+ep   397 | step  225348 | survived 1000 | rollout 111/244
+ep   398 | step  226348 | survived 1000 | rollout 111/244
+ep   399 | step  226710 | survived  362 | rollout 111/244
+ep   400 | step  226915 | survived  205 | rollout 111/244
+ep   401 | step  227137 | survived  222 | rollout 111/244
+=== upd  111/244 | step  227328 | mean_ep_len  550.0 | mean_ep_rew  550.0 | pg_loss -0.024 | v_loss 167.796 | ent 1.995 | clipfrac 0.145 | sps 4292 ===
+ep   402 | step  227497 | survived  360 | rollout 112/244
+ep   403 | step  227902 | survived  405 | rollout 112/244
+ep   404 | step  228752 | survived  850 | rollout 112/244
+ep   405 | step  229037 | survived  285 | rollout 112/244
+=== upd  112/244 | step  229376 | mean_ep_len  552.7 | mean_ep_rew  552.7 | pg_loss -0.044 | v_loss 118.369 | ent 2.038 | clipfrac 0.162 | sps 4293 ===
+ep   406 | step  230028 | survived  991 | rollout 113/244
+ep   407 | step  231028 | survived 1000 | rollout 113/244
+ep   408 | step  231191 | survived  163 | rollout 113/244
+=== upd  113/244 | step  231424 | mean_ep_len  576.5 | mean_ep_rew  576.5 | pg_loss -0.022 | v_loss 10.400 | ent 2.275 | clipfrac 0.182 | sps 4294 ===
+ep   409 | step  232191 | survived 1000 | rollout 114/244
+ep   410 | step  232970 | survived  779 | rollout 114/244
+=== upd  114/244 | step  233472 | mean_ep_len  584.4 | mean_ep_rew  584.4 | pg_loss -0.030 | v_loss 26.498 | ent 2.397 | clipfrac 0.185 | sps 4296 ===
+ep   411 | step  233506 | survived  536 | rollout 115/244
+ep   412 | step  234210 | survived  704 | rollout 115/244
+ep   413 | step  234684 | survived  474 | rollout 115/244
+ep   414 | step  235384 | survived  700 | rollout 115/244
+=== upd  115/244 | step  235520 | mean_ep_len  612.7 | mean_ep_rew  612.7 | pg_loss -0.037 | v_loss 119.481 | ent 1.928 | clipfrac 0.228 | sps 4299 ===
+ep   415 | step  236384 | survived 1000 | rollout 116/244
+ep   416 | step  237348 | survived  964 | rollout 116/244
+=== upd  116/244 | step  237568 | mean_ep_len  628.0 | mean_ep_rew  628.0 | pg_loss -0.024 | v_loss 3.306 | ent 2.351 | clipfrac 0.129 | sps 4300 ===
+ep   417 | step  237698 | survived  350 | rollout 117/244
+ep   418 | step  238044 | survived  346 | rollout 117/244
+ep   419 | step  239044 | survived 1000 | rollout 117/244
+ep   420 | step  239482 | survived  438 | rollout 117/244
+=== upd  117/244 | step  239616 | mean_ep_len  628.9 | mean_ep_rew  628.9 | pg_loss -0.038 | v_loss 65.781 | ent 1.947 | clipfrac 0.114 | sps 4302 ===
+ep   421 | step  239918 | survived  436 | rollout 118/244
+ep   422 | step  240259 | survived  341 | rollout 118/244
+ep   423 | step  241259 | survived 1000 | rollout 118/244
+=== upd  118/244 | step  241664 | mean_ep_len  608.3 | mean_ep_rew  608.3 | pg_loss +0.005 | v_loss 45.586 | ent 2.131 | clipfrac 0.158 | sps 4303 ===
+ep   424 | step  242259 | survived 1000 | rollout 119/244
+ep   425 | step  243050 | survived  791 | rollout 119/244
+ep   426 | step  243443 | survived  393 | rollout 119/244
+=== upd  119/244 | step  243712 | mean_ep_len  616.6 | mean_ep_rew  616.6 | pg_loss +0.064 | v_loss 48.330 | ent 2.196 | clipfrac 0.203 | sps 4304 ===
+ep   427 | step  244017 | survived  574 | rollout 120/244
+ep   428 | step  244302 | survived  285 | rollout 120/244
+ep   429 | step  244747 | survived  445 | rollout 120/244
+ep   430 | step  245272 | survived  525 | rollout 120/244
+=== upd  120/244 | step  245760 | mean_ep_len  606.1 | mean_ep_rew  606.1 | pg_loss +0.018 | v_loss 89.280 | ent 1.825 | clipfrac 0.121 | sps 4305 ===
+ep   431 | step  245952 | survived  680 | rollout 121/244
+ep   432 | step  246441 | survived  489 | rollout 121/244
+ep   433 | step  247441 | survived 1000 | rollout 121/244
+=== upd  121/244 | step  247808 | mean_ep_len  617.9 | mean_ep_rew  617.9 | pg_loss -0.008 | v_loss 2.169 | ent 2.064 | clipfrac 0.114 | sps 4307 ===
+ep   434 | step  248166 | survived  725 | rollout 122/244
+ep   435 | step  248434 | survived  268 | rollout 122/244
+ep   436 | step  248927 | survived  493 | rollout 122/244
+=== upd  122/244 | step  249856 | mean_ep_len  628.4 | mean_ep_rew  628.4 | pg_loss -0.026 | v_loss 21.934 | ent 1.896 | clipfrac 0.141 | sps 4308 ===
+ep   437 | step  249927 | survived 1000 | rollout 123/244
+ep   438 | step  250289 | survived  362 | rollout 123/244
+ep   439 | step  250948 | survived  659 | rollout 123/244
+ep   440 | step  251445 | survived  497 | rollout 123/244
+ep   441 | step  251840 | survived  395 | rollout 123/244
+=== upd  123/244 | step  251904 | mean_ep_len  614.1 | mean_ep_rew  614.1 | pg_loss -0.037 | v_loss 182.508 | ent 1.659 | clipfrac 0.142 | sps 4309 ===
+ep   442 | step  252292 | survived  452 | rollout 124/244
+ep   443 | step  252920 | survived  628 | rollout 124/244
+ep   444 | step  253469 | survived  549 | rollout 124/244
+=== upd  124/244 | step  253952 | mean_ep_len  615.3 | mean_ep_rew  615.3 | pg_loss -0.015 | v_loss 76.796 | ent 1.826 | clipfrac 0.114 | sps 4311 ===
+ep   445 | step  254353 | survived  884 | rollout 125/244
+ep   446 | step  255353 | survived 1000 | rollout 125/244
+ep   447 | step  255986 | survived  633 | rollout 125/244
+=== upd  125/244 | step  256000 | mean_ep_len  612.8 | mean_ep_rew  612.8 | pg_loss -0.030 | v_loss 195.581 | ent 1.865 | clipfrac 0.138 | sps 4312 ===
+ep   448 | step  256798 | survived  812 | rollout 126/244
+ep   449 | step  257798 | survived 1000 | rollout 126/244
+=== upd  126/244 | step  258048 | mean_ep_len  621.8 | mean_ep_rew  621.8 | pg_loss -0.032 | v_loss 86.019 | ent 1.938 | clipfrac 0.146 | sps 4313 ===
+ep   450 | step  258120 | survived  322 | rollout 127/244
+ep   451 | step  258449 | survived  329 | rollout 127/244
+ep   452 | step  259318 | survived  869 | rollout 127/244
+ep   453 | step  259467 | survived  149 | rollout 127/244
+ep   454 | step  259816 | survived  349 | rollout 127/244
+=== upd  127/244 | step  260096 | mean_ep_len  621.3 | mean_ep_rew  621.3 | pg_loss -0.026 | v_loss 48.929 | ent 1.767 | clipfrac 0.142 | sps 4315 ===
+ep   455 | step  260222 | survived  406 | rollout 128/244
+ep   456 | step  260785 | survived  563 | rollout 128/244
+ep   457 | step  261785 | survived 1000 | rollout 128/244
+ep   458 | step  261944 | survived  159 | rollout 128/244
+=== upd  128/244 | step  262144 | mean_ep_len  615.1 | mean_ep_rew  615.1 | pg_loss -0.022 | v_loss 43.064 | ent 1.864 | clipfrac 0.167 | sps 4316 ===
+ep   459 | step  262211 | survived  267 | rollout 129/244
+ep   460 | step  263211 | survived 1000 | rollout 129/244
+ep   461 | step  263843 | survived  632 | rollout 129/244
+ep   462 | step  264166 | survived  323 | rollout 129/244
+=== upd  129/244 | step  264192 | mean_ep_len  599.1 | mean_ep_rew  599.1 | pg_loss -0.035 | v_loss 179.699 | ent 1.782 | clipfrac 0.140 | sps 4317 ===
+ep   463 | step  264625 | survived  459 | rollout 130/244
+ep   464 | step  265074 | survived  449 | rollout 130/244
+ep   465 | step  265252 | survived  178 | rollout 130/244
+=== upd  130/244 | step  266240 | mean_ep_len  577.4 | mean_ep_rew  577.4 | pg_loss -0.015 | v_loss 165.329 | ent 1.706 | clipfrac 0.154 | sps 4311 ===
+ep   466 | step  266252 | survived 1000 | rollout 131/244
+ep   467 | step  266447 | survived  195 | rollout 131/244
+ep   468 | step  267402 | survived  955 | rollout 131/244
+ep   469 | step  267925 | survived  523 | rollout 131/244
+ep   470 | step  268065 | survived  140 | rollout 131/244
+=== upd  131/244 | step  268288 | mean_ep_len  571.7 | mean_ep_rew  571.7 | pg_loss -0.024 | v_loss 59.332 | ent 1.763 | clipfrac 0.098 | sps 4312 ===
+ep   471 | step  268430 | survived  365 | rollout 132/244
+ep   472 | step  269430 | survived 1000 | rollout 132/244
+ep   473 | step  269764 | survived  334 | rollout 132/244
+ep   474 | step  270177 | survived  413 | rollout 132/244
+ep   475 | step  270331 | survived  154 | rollout 132/244
+=== upd  132/244 | step  270336 | mean_ep_len  545.6 | mean_ep_rew  545.6 | pg_loss -0.012 | v_loss 88.049 | ent 1.914 | clipfrac 0.161 | sps 4313 ===
+ep   476 | step  270522 | survived  191 | rollout 133/244
+ep   477 | step  271522 | survived 1000 | rollout 133/244
+=== upd  133/244 | step  272384 | mean_ep_len  550.1 | mean_ep_rew  550.1 | pg_loss -0.022 | v_loss 4.256 | ent 1.799 | clipfrac 0.123 | sps 4315 ===
+ep   478 | step  272522 | survived 1000 | rollout 134/244
+ep   479 | step  272677 | survived  155 | rollout 134/244
+ep   480 | step  273661 | survived  984 | rollout 134/244
+=== upd  134/244 | step  274432 | mean_ep_len  567.8 | mean_ep_rew  567.8 | pg_loss +0.034 | v_loss 69.663 | ent 1.994 | clipfrac 0.147 | sps 4316 ===
+ep   481 | step  274661 | survived 1000 | rollout 135/244
+ep   482 | step  275661 | survived 1000 | rollout 135/244
+ep   483 | step  276056 | survived  395 | rollout 135/244
+=== upd  135/244 | step  276480 | mean_ep_len  572.3 | mean_ep_rew  572.3 | pg_loss +0.105 | v_loss 5.361 | ent 1.942 | clipfrac 0.164 | sps 4318 ===
+ep   484 | step  277056 | survived 1000 | rollout 136/244
+ep   485 | step  277452 | survived  396 | rollout 136/244
+ep   486 | step  277805 | survived  353 | rollout 136/244
+=== upd  136/244 | step  278528 | mean_ep_len  577.6 | mean_ep_rew  577.6 | pg_loss -0.013 | v_loss 129.329 | ent 1.875 | clipfrac 0.163 | sps 4319 ===
+ep   487 | step  278555 | survived  750 | rollout 137/244
+ep   488 | step  279231 | survived  676 | rollout 137/244
+ep   489 | step  279952 | survived  721 | rollout 137/244
+ep   490 | step  280299 | survived  347 | rollout 137/244
+=== upd  137/244 | step  280576 | mean_ep_len  577.1 | mean_ep_rew  577.1 | pg_loss +0.023 | v_loss 89.180 | ent 1.772 | clipfrac 0.155 | sps 4320 ===
+ep   491 | step  280990 | survived  691 | rollout 138/244
+ep   492 | step  281669 | survived  679 | rollout 138/244
+=== upd  138/244 | step  282624 | mean_ep_len  587.5 | mean_ep_rew  587.5 | pg_loss -0.018 | v_loss 26.742 | ent 1.851 | clipfrac 0.119 | sps 4321 ===
+ep   493 | step  282669 | survived 1000 | rollout 139/244
+ep   494 | step  283020 | survived  351 | rollout 139/244
+ep   495 | step  283169 | survived  149 | rollout 139/244
+ep   496 | step  283394 | survived  225 | rollout 139/244
+ep   497 | step  283554 | survived  160 | rollout 139/244
+ep   498 | step  283850 | survived  296 | rollout 139/244
+ep   499 | step  284250 | survived  400 | rollout 139/244
+=== upd  139/244 | step  284672 | mean_ep_len  529.0 | mean_ep_rew  529.0 | pg_loss -0.031 | v_loss 119.034 | ent 1.666 | clipfrac 0.103 | sps 4321 ===
+ep   500 | step  285250 | survived 1000 | rollout 140/244
+ep   501 | step  285664 | survived  414 | rollout 140/244
+ep   502 | step  285966 | survived  302 | rollout 140/244
+ep   503 | step  286443 | survived  477 | rollout 140/244
+=== upd  140/244 | step  286720 | mean_ep_len  539.5 | mean_ep_rew  539.5 | pg_loss -0.034 | v_loss 132.330 | ent 1.720 | clipfrac 0.150 | sps 4319 ===
+ep   504 | step  287443 | survived 1000 | rollout 141/244
+ep   505 | step  287588 | survived  145 | rollout 141/244
+ep   506 | step  287731 | survived  143 | rollout 141/244
+ep   507 | step  288006 | survived  275 | rollout 141/244
+=== upd  141/244 | step  288768 | mean_ep_len  524.4 | mean_ep_rew  524.4 | pg_loss -0.009 | v_loss 11.325 | ent 1.800 | clipfrac 0.158 | sps 4313 ===
+ep   508 | step  289006 | survived 1000 | rollout 142/244
+ep   509 | step  290006 | survived 1000 | rollout 142/244
+ep   510 | step  290625 | survived  619 | rollout 142/244
+=== upd  142/244 | step  290816 | mean_ep_len  548.3 | mean_ep_rew  548.3 | pg_loss +0.002 | v_loss 16.216 | ent 1.934 | clipfrac 0.160 | sps 4312 ===
+ep   511 | step  291176 | survived  551 | rollout 143/244
+ep   512 | step  291326 | survived  150 | rollout 143/244
+ep   513 | step  291752 | survived  426 | rollout 143/244
+ep   514 | step  292124 | survived  372 | rollout 143/244
+=== upd  143/244 | step  292864 | mean_ep_len  541.0 | mean_ep_rew  541.0 | pg_loss -0.032 | v_loss 42.876 | ent 1.884 | clipfrac 0.154 | sps 4312 ===
+ep   515 | step  293124 | survived 1000 | rollout 144/244
+ep   516 | step  294124 | survived 1000 | rollout 144/244
+ep   517 | step  294344 | survived  220 | rollout 144/244
+ep   518 | step  294897 | survived  553 | rollout 144/244
+=== upd  144/244 | step  294912 | mean_ep_len  549.9 | mean_ep_rew  549.9 | pg_loss -0.013 | v_loss 8.913 | ent 2.203 | clipfrac 0.173 | sps 4312 ===
+ep   519 | step  295650 | survived  753 | rollout 145/244
+ep   520 | step  295828 | survived  178 | rollout 145/244
+ep   521 | step  296000 | survived  172 | rollout 145/244
+ep   522 | step  296245 | survived  245 | rollout 145/244
+ep   523 | step  296383 | survived  138 | rollout 145/244
+=== upd  145/244 | step  296960 | mean_ep_len  532.4 | mean_ep_rew  532.4 | pg_loss -0.022 | v_loss 118.593 | ent 1.879 | clipfrac 0.164 | sps 4313 ===
+ep   524 | step  297145 | survived  762 | rollout 146/244
+ep   525 | step  297481 | survived  336 | rollout 146/244
+ep   526 | step  297882 | survived  401 | rollout 146/244
+ep   527 | step  298882 | survived 1000 | rollout 146/244
+=== upd  146/244 | step  299008 | mean_ep_len  547.2 | mean_ep_rew  547.2 | pg_loss +0.001 | v_loss 96.075 | ent 1.850 | clipfrac 0.193 | sps 4313 ===
+ep   528 | step  299095 | survived  213 | rollout 147/244
+ep   529 | step  299999 | survived  904 | rollout 147/244
+ep   530 | step  300628 | survived  629 | rollout 147/244
+=== upd  147/244 | step  301056 | mean_ep_len  539.3 | mean_ep_rew  539.3 | pg_loss -0.006 | v_loss 2.343 | ent 1.775 | clipfrac 0.185 | sps 4313 ===
+ep   531 | step  301105 | survived  477 | rollout 148/244
+ep   532 | step  301978 | survived  873 | rollout 148/244
+ep   533 | step  302661 | survived  683 | rollout 148/244
+=== upd  148/244 | step  303104 | mean_ep_len  532.1 | mean_ep_rew  532.1 | pg_loss -0.028 | v_loss 58.706 | ent 1.828 | clipfrac 0.188 | sps 4314 ===
+ep   534 | step  303574 | survived  913 | rollout 149/244
+ep   535 | step  303920 | survived  346 | rollout 149/244
+ep   536 | step  304494 | survived  574 | rollout 149/244
+ep   537 | step  304635 | survived  141 | rollout 149/244
+ep   538 | step  304959 | survived  324 | rollout 149/244
+=== upd  149/244 | step  305152 | mean_ep_len  514.6 | mean_ep_rew  514.6 | pg_loss -0.014 | v_loss 23.987 | ent 1.720 | clipfrac 0.166 | sps 4314 ===
+ep   539 | step  305552 | survived  593 | rollout 150/244
+ep   540 | step  305980 | survived  428 | rollout 150/244
+ep   541 | step  306107 | survived  127 | rollout 150/244
+ep   542 | step  306913 | survived  806 | rollout 150/244
+=== upd  150/244 | step  307200 | mean_ep_len  504.9 | mean_ep_rew  504.9 | pg_loss +0.019 | v_loss 136.411 | ent 2.161 | clipfrac 0.146 | sps 4314 ===
+ep   543 | step  307386 | survived  473 | rollout 151/244
+ep   544 | step  307890 | survived  504 | rollout 151/244
+ep   545 | step  308042 | survived  152 | rollout 151/244
+ep   546 | step  308578 | survived  536 | rollout 151/244
+=== upd  151/244 | step  309248 | mean_ep_len  503.7 | mean_ep_rew  503.7 | pg_loss -0.028 | v_loss 16.743 | ent 2.260 | clipfrac 0.181 | sps 4313 ===
+ep   547 | step  309263 | survived  685 | rollout 152/244
+ep   548 | step  310226 | survived  963 | rollout 152/244
+ep   549 | step  311226 | survived 1000 | rollout 152/244
+=== upd  152/244 | step  311296 | mean_ep_len  539.5 | mean_ep_rew  539.5 | pg_loss -0.012 | v_loss 77.828 | ent 2.110 | clipfrac 0.248 | sps 4310 ===
+ep   550 | step  311641 | survived  415 | rollout 153/244
+ep   551 | step  311918 | survived  277 | rollout 153/244
+ep   552 | step  312102 | survived  184 | rollout 153/244
+ep   553 | step  313102 | survived 1000 | rollout 153/244
+=== upd  153/244 | step  313344 | mean_ep_len  533.2 | mean_ep_rew  533.2 | pg_loss -0.013 | v_loss 14.069 | ent 2.044 | clipfrac 0.176 | sps 4310 ===
+ep   554 | step  313905 | survived  803 | rollout 154/244
+ep   555 | step  314599 | survived  694 | rollout 154/244
+ep   556 | step  315031 | survived  432 | rollout 154/244
+ep   557 | step  315339 | survived  308 | rollout 154/244
+=== upd  154/244 | step  315392 | mean_ep_len  546.7 | mean_ep_rew  546.7 | pg_loss -0.032 | v_loss 117.020 | ent 2.112 | clipfrac 0.168 | sps 4310 ===
+ep   558 | step  315854 | survived  515 | rollout 155/244
+ep   559 | step  316854 | survived 1000 | rollout 155/244
+ep   560 | step  317038 | survived  184 | rollout 155/244
+ep   561 | step  317408 | survived  370 | rollout 155/244
+=== upd  155/244 | step  317440 | mean_ep_len  524.6 | mean_ep_rew  524.6 | pg_loss -0.022 | v_loss 19.329 | ent 1.914 | clipfrac 0.173 | sps 4311 ===
+ep   562 | step  317968 | survived  560 | rollout 156/244
+ep   563 | step  318576 | survived  608 | rollout 156/244
+ep   564 | step  318950 | survived  374 | rollout 156/244
+ep   565 | step  319273 | survived  323 | rollout 156/244
+=== upd  156/244 | step  319488 | mean_ep_len  523.0 | mean_ep_rew  523.0 | pg_loss +0.021 | v_loss 93.308 | ent 1.855 | clipfrac 0.188 | sps 4311 ===
+ep   566 | step  319785 | survived  512 | rollout 157/244
+ep   567 | step  320511 | survived  726 | rollout 157/244
+ep   568 | step  320788 | survived  277 | rollout 157/244
+ep   569 | step  321003 | survived  215 | rollout 157/244
+=== upd  157/244 | step  321536 | mean_ep_len  507.1 | mean_ep_rew  507.1 | pg_loss +0.041 | v_loss 106.464 | ent 1.934 | clipfrac 0.191 | sps 4312 ===
+ep   570 | step  321949 | survived  946 | rollout 158/244
+ep   571 | step  322318 | survived  369 | rollout 158/244
+ep   572 | step  323084 | survived  766 | rollout 158/244
+ep   573 | step  323414 | survived  330 | rollout 158/244
+ep   574 | step  323571 | survived  157 | rollout 158/244
+=== upd  158/244 | step  323584 | mean_ep_len  528.5 | mean_ep_rew  528.5 | pg_loss -0.021 | v_loss 105.668 | ent 1.978 | clipfrac 0.161 | sps 4313 ===
+ep   575 | step  324262 | survived  691 | rollout 159/244
+ep   576 | step  324486 | survived  224 | rollout 159/244
+ep   577 | step  324662 | survived  176 | rollout 159/244
+ep   578 | step  325220 | survived  558 | rollout 159/244
+=== upd  159/244 | step  325632 | mean_ep_len  522.5 | mean_ep_rew  522.5 | pg_loss -0.021 | v_loss 66.551 | ent 1.801 | clipfrac 0.165 | sps 4313 ===
+ep   579 | step  325723 | survived  503 | rollout 160/244
+ep   580 | step  326160 | survived  437 | rollout 160/244
+ep   581 | step  326890 | survived  730 | rollout 160/244
+=== upd  160/244 | step  327680 | mean_ep_len  515.7 | mean_ep_rew  515.7 | pg_loss -0.046 | v_loss 107.195 | ent 1.922 | clipfrac 0.159 | sps 4314 ===
+ep   582 | step  327742 | survived  852 | rollout 161/244
+ep   583 | step  328560 | survived  818 | rollout 161/244
+ep   584 | step  329166 | survived  606 | rollout 161/244
+ep   585 | step  329390 | survived  224 | rollout 161/244
+=== upd  161/244 | step  329728 | mean_ep_len  509.4 | mean_ep_rew  509.4 | pg_loss -0.033 | v_loss 29.363 | ent 1.888 | clipfrac 0.204 | sps 4310 ===
+ep   586 | step  330020 | survived  630 | rollout 162/244
+ep   587 | step  330538 | survived  518 | rollout 162/244
+ep   588 | step  331538 | survived 1000 | rollout 162/244
+ep   589 | step  331744 | survived  206 | rollout 162/244
+=== upd  162/244 | step  331776 | mean_ep_len  523.8 | mean_ep_rew  523.8 | pg_loss -0.028 | v_loss 113.703 | ent 1.861 | clipfrac 0.160 | sps 4308 ===
+ep   590 | step  332295 | survived  551 | rollout 163/244
+ep   591 | step  333295 | survived 1000 | rollout 163/244
+ep   592 | step  333626 | survived  331 | rollout 163/244
+=== upd  163/244 | step  333824 | mean_ep_len  534.3 | mean_ep_rew  534.3 | pg_loss -0.031 | v_loss 50.273 | ent 1.803 | clipfrac 0.219 | sps 4309 ===
+ep   593 | step  334297 | survived  671 | rollout 164/244
+ep   594 | step  334487 | survived  190 | rollout 164/244
+ep   595 | step  335239 | survived  752 | rollout 164/244
+ep   596 | step  335528 | survived  289 | rollout 164/244
+=== upd  164/244 | step  335872 | mean_ep_len  539.0 | mean_ep_rew  539.0 | pg_loss -0.027 | v_loss 67.360 | ent 1.602 | clipfrac 0.155 | sps 4310 ===
+ep   597 | step  336246 | survived  718 | rollout 165/244
+ep   598 | step  337078 | survived  832 | rollout 165/244
+ep   599 | step  337211 | survived  133 | rollout 165/244
+ep   600 | step  337605 | survived  394 | rollout 165/244
+=== upd  165/244 | step  337920 | mean_ep_len  519.3 | mean_ep_rew  519.3 | pg_loss -0.014 | v_loss 196.499 | ent 1.843 | clipfrac 0.150 | sps 4311 ===
+ep   601 | step  338605 | survived 1000 | rollout 166/244
+ep   602 | step  339605 | survived 1000 | rollout 166/244
+=== upd  166/244 | step  339968 | mean_ep_len  550.1 | mean_ep_rew  550.1 | pg_loss -0.023 | v_loss 111.527 | ent 2.067 | clipfrac 0.198 | sps 4311 ===
+ep   603 | step  340605 | survived 1000 | rollout 167/244
+ep   604 | step  341064 | survived  459 | rollout 167/244
+ep   605 | step  341447 | survived  383 | rollout 167/244
+ep   606 | step  341996 | survived  549 | rollout 167/244
+=== upd  167/244 | step  342016 | mean_ep_len  539.3 | mean_ep_rew  539.3 | pg_loss -0.038 | v_loss 116.115 | ent 1.924 | clipfrac 0.164 | sps 4312 ===
+ep   607 | step  342166 | survived  170 | rollout 168/244
+ep   608 | step  342628 | survived  462 | rollout 168/244
+ep   609 | step  343014 | survived  386 | rollout 168/244
+ep   610 | step  343339 | survived  325 | rollout 168/244
+ep   611 | step  343532 | survived  193 | rollout 168/244
+ep   612 | step  343757 | survived  225 | rollout 168/244
+ep   613 | step  344057 | survived  300 | rollout 168/244
+=== upd  168/244 | step  344064 | mean_ep_len  509.6 | mean_ep_rew  509.6 | pg_loss -0.000 | v_loss 226.957 | ent 1.682 | clipfrac 0.098 | sps 4313 ===
+ep   614 | step  344900 | survived  843 | rollout 169/244
+ep   615 | step  345837 | survived  937 | rollout 169/244
+=== upd  169/244 | step  346112 | mean_ep_len  531.3 | mean_ep_rew  531.3 | pg_loss +0.027 | v_loss 80.308 | ent 2.321 | clipfrac 0.168 | sps 4314 ===
+ep   616 | step  346837 | survived 1000 | rollout 170/244
+ep   617 | step  347033 | survived  196 | rollout 170/244
+ep   618 | step  348033 | survived 1000 | rollout 170/244
+=== upd  170/244 | step  348160 | mean_ep_len  544.9 | mean_ep_rew  544.9 | pg_loss -0.034 | v_loss 84.639 | ent 2.276 | clipfrac 0.239 | sps 4315 ===
+ep   619 | step  348628 | survived  595 | rollout 171/244
+ep   620 | step  349486 | survived  858 | rollout 171/244
+ep   621 | step  349953 | survived  467 | rollout 171/244
+=== upd  171/244 | step  350208 | mean_ep_len  552.7 | mean_ep_rew  552.7 | pg_loss +0.014 | v_loss 51.830 | ent 1.857 | clipfrac 0.173 | sps 4315 ===
+ep   622 | step  350747 | survived  794 | rollout 172/244
+ep   623 | step  351615 | survived  868 | rollout 172/244
+ep   624 | step  352138 | survived  523 | rollout 172/244
+=== upd  172/244 | step  352256 | mean_ep_len  571.3 | mean_ep_rew  571.3 | pg_loss -0.047 | v_loss 152.771 | ent 1.982 | clipfrac 0.266 | sps 4316 ===
+ep   625 | step  352561 | survived  423 | rollout 173/244
+ep   626 | step  352908 | survived  347 | rollout 173/244
+ep   627 | step  353908 | survived 1000 | rollout 173/244
+ep   628 | step  354147 | survived  239 | rollout 173/244
+=== upd  173/244 | step  354304 | mean_ep_len  578.5 | mean_ep_rew  578.5 | pg_loss +0.002 | v_loss 11.668 | ent 2.220 | clipfrac 0.185 | sps 4317 ===
+ep   629 | step  354602 | survived  455 | rollout 174/244
+ep   630 | step  355602 | survived 1000 | rollout 174/244
+ep   631 | step  355917 | survived  315 | rollout 174/244
+=== upd  174/244 | step  356352 | mean_ep_len  580.5 | mean_ep_rew  580.5 | pg_loss +0.001 | v_loss 65.036 | ent 2.262 | clipfrac 0.224 | sps 4318 ===
+ep   632 | step  356606 | survived  689 | rollout 175/244
+ep   633 | step  357606 | survived 1000 | rollout 175/244
+ep   634 | step  358390 | survived  784 | rollout 175/244
+=== upd  175/244 | step  358400 | mean_ep_len  584.5 | mean_ep_rew  584.5 | pg_loss +0.026 | v_loss 81.913 | ent 2.407 | clipfrac 0.149 | sps 4319 ===
+ep   635 | step  358623 | survived  233 | rollout 176/244
+ep   636 | step  358774 | survived  151 | rollout 176/244
+ep   637 | step  359516 | survived  742 | rollout 176/244
+ep   638 | step  359945 | survived  429 | rollout 176/244
+=== upd  176/244 | step  360448 | mean_ep_len  568.1 | mean_ep_rew  568.1 | pg_loss -0.005 | v_loss 59.987 | ent 1.905 | clipfrac 0.145 | sps 4320 ===
+ep   639 | step  360606 | survived  661 | rollout 177/244
+ep   640 | step  360876 | survived  270 | rollout 177/244
+ep   641 | step  361876 | survived 1000 | rollout 177/244
+ep   642 | step  362461 | survived  585 | rollout 177/244
+=== upd  177/244 | step  362496 | mean_ep_len  576.7 | mean_ep_rew  576.7 | pg_loss +0.025 | v_loss 13.556 | ent 2.259 | clipfrac 0.111 | sps 4321 ===
+ep   643 | step  362603 | survived  142 | rollout 178/244
+ep   644 | step  363115 | survived  512 | rollout 178/244
+ep   645 | step  364115 | survived 1000 | rollout 178/244
+=== upd  178/244 | step  364544 | mean_ep_len  577.5 | mean_ep_rew  577.5 | pg_loss -0.010 | v_loss 281.869 | ent 2.362 | clipfrac 0.159 | sps 4322 ===
+ep   646 | step  365115 | survived 1000 | rollout 179/244
+ep   647 | step  365631 | survived  516 | rollout 179/244
+=== upd  179/244 | step  366592 | mean_ep_len  587.7 | mean_ep_rew  587.7 | pg_loss -0.009 | v_loss 1.356 | ent 2.363 | clipfrac 0.155 | sps 4323 ===
+ep   648 | step  366631 | survived 1000 | rollout 180/244
+ep   649 | step  366960 | survived  329 | rollout 180/244
+ep   650 | step  367699 | survived  739 | rollout 180/244
+ep   651 | step  368118 | survived  419 | rollout 180/244
+=== upd  180/244 | step  368640 | mean_ep_len  590.3 | mean_ep_rew  590.3 | pg_loss -0.043 | v_loss 194.978 | ent 1.938 | clipfrac 0.159 | sps 4324 ===
+ep   652 | step  369014 | survived  896 | rollout 181/244
+ep   653 | step  369849 | survived  835 | rollout 181/244
+ep   654 | step  370421 | survived  572 | rollout 181/244
+ep   655 | step  370620 | survived  199 | rollout 181/244
+=== upd  181/244 | step  370688 | mean_ep_len  583.5 | mean_ep_rew  583.5 | pg_loss +0.028 | v_loss 43.818 | ent 2.097 | clipfrac 0.171 | sps 4325 ===
+ep   656 | step  370994 | survived  374 | rollout 182/244
+ep   657 | step  371537 | survived  543 | rollout 182/244
+ep   658 | step  372537 | survived 1000 | rollout 182/244
+=== upd  182/244 | step  372736 | mean_ep_len  598.2 | mean_ep_rew  598.2 | pg_loss -0.007 | v_loss 40.119 | ent 2.071 | clipfrac 0.136 | sps 4326 ===
+ep   659 | step  373537 | survived 1000 | rollout 183/244
+ep   660 | step  373897 | survived  360 | rollout 183/244
+ep   661 | step  374549 | survived  652 | rollout 183/244
+=== upd  183/244 | step  374784 | mean_ep_len  620.3 | mean_ep_rew  620.3 | pg_loss -0.029 | v_loss 42.378 | ent 2.091 | clipfrac 0.146 | sps 4323 ===
+ep   662 | step  375187 | survived  638 | rollout 184/244
+ep   663 | step  375684 | survived  497 | rollout 184/244
+ep   664 | step  376424 | survived  740 | rollout 184/244
+ep   665 | step  376623 | survived  199 | rollout 184/244
+=== upd  184/244 | step  376832 | mean_ep_len  615.7 | mean_ep_rew  615.7 | pg_loss -0.031 | v_loss 25.328 | ent 2.112 | clipfrac 0.183 | sps 4322 ===
+ep   666 | step  377423 | survived  800 | rollout 185/244
+ep   667 | step  377621 | survived  198 | rollout 185/244
+ep   668 | step  378621 | survived 1000 | rollout 185/244
+=== upd  185/244 | step  378880 | mean_ep_len  611.8 | mean_ep_rew  611.8 | pg_loss -0.007 | v_loss 2.611 | ent 2.322 | clipfrac 0.201 | sps 4322 ===
+ep   669 | step  379223 | survived  602 | rollout 186/244
+ep   670 | step  380223 | survived 1000 | rollout 186/244
+=== upd  186/244 | step  380928 | mean_ep_len  614.7 | mean_ep_rew  614.7 | pg_loss +0.023 | v_loss 48.253 | ent 2.111 | clipfrac 0.215 | sps 4323 ===
+ep   671 | step  380949 | survived  726 | rollout 187/244
+ep   672 | step  381949 | survived 1000 | rollout 187/244
+ep   673 | step  382476 | survived  527 | rollout 187/244
+ep   674 | step  382758 | survived  282 | rollout 187/244
+=== upd  187/244 | step  382976 | mean_ep_len  612.4 | mean_ep_rew  612.4 | pg_loss -0.011 | v_loss 0.416 | ent 1.832 | clipfrac 0.115 | sps 4324 ===
+ep   675 | step  383394 | survived  636 | rollout 188/244
+ep   676 | step  383599 | survived  205 | rollout 188/244
+ep   677 | step  384073 | survived  474 | rollout 188/244
+ep   678 | step  384554 | survived  481 | rollout 188/244
+ep   679 | step  384859 | survived  305 | rollout 188/244
+=== upd  188/244 | step  385024 | mean_ep_len  605.1 | mean_ep_rew  605.1 | pg_loss -0.030 | v_loss 64.596 | ent 1.619 | clipfrac 0.152 | sps 4325 ===
+ep   680 | step  385684 | survived  825 | rollout 189/244
+ep   681 | step  386354 | survived  670 | rollout 189/244
+ep   682 | step  386512 | survived  158 | rollout 189/244
+ep   683 | step  386808 | survived  296 | rollout 189/244
+=== upd  189/244 | step  387072 | mean_ep_len  584.0 | mean_ep_rew  584.0 | pg_loss -0.038 | v_loss 116.303 | ent 2.028 | clipfrac 0.189 | sps 4325 ===
+ep   684 | step  387808 | survived 1000 | rollout 190/244
+ep   685 | step  388723 | survived  915 | rollout 190/244
+=== upd  190/244 | step  389120 | mean_ep_len  602.0 | mean_ep_rew  602.0 | pg_loss -0.029 | v_loss 14.665 | ent 2.224 | clipfrac 0.179 | sps 4326 ===
+ep   686 | step  389394 | survived  671 | rollout 191/244
+ep   687 | step  389824 | survived  430 | rollout 191/244
+ep   688 | step  390824 | survived 1000 | rollout 191/244
+ep   689 | step  391121 | survived  297 | rollout 191/244
+=== upd  191/244 | step  391168 | mean_ep_len  610.3 | mean_ep_rew  610.3 | pg_loss +0.000 | v_loss 32.335 | ent 2.172 | clipfrac 0.186 | sps 4327 ===
+ep   690 | step  392121 | survived 1000 | rollout 192/244
+ep   691 | step  393121 | survived 1000 | rollout 192/244
+=== upd  192/244 | step  393216 | mean_ep_len  624.9 | mean_ep_rew  624.9 | pg_loss -0.039 | v_loss 42.222 | ent 2.302 | clipfrac 0.135 | sps 4327 ===
+ep   692 | step  393659 | survived  538 | rollout 193/244
+ep   693 | step  393865 | survived  206 | rollout 193/244
+ep   694 | step  394027 | survived  162 | rollout 193/244
+ep   695 | step  394314 | survived  287 | rollout 193/244
+ep   696 | step  394879 | survived  565 | rollout 193/244
+ep   697 | step  395260 | survived  381 | rollout 193/244
+=== upd  193/244 | step  395264 | mean_ep_len  592.6 | mean_ep_rew  592.6 | pg_loss +0.005 | v_loss 146.176 | ent 1.687 | clipfrac 0.118 | sps 4328 ===
+ep   698 | step  395894 | survived  634 | rollout 194/244
+ep   699 | step  396695 | survived  801 | rollout 194/244
+=== upd  194/244 | step  397312 | mean_ep_len  594.7 | mean_ep_rew  594.7 | pg_loss +0.005 | v_loss 14.335 | ent 1.640 | clipfrac 0.117 | sps 4329 ===
+ep   700 | step  397491 | survived  796 | rollout 195/244
+ep   701 | step  397684 | survived  193 | rollout 195/244
+ep   702 | step  398581 | survived  897 | rollout 195/244
+ep   703 | step  398915 | survived  334 | rollout 195/244
+ep   704 | step  399203 | survived  288 | rollout 195/244
+=== upd  195/244 | step  399360 | mean_ep_len  575.6 | mean_ep_rew  575.6 | pg_loss +0.019 | v_loss 174.118 | ent 1.901 | clipfrac 0.172 | sps 4330 ===
+ep   705 | step  399926 | survived  723 | rollout 196/244
+ep   706 | step  400219 | survived  293 | rollout 196/244
+ep   707 | step  400488 | survived  269 | rollout 196/244
+ep   708 | step  401049 | survived  561 | rollout 196/244
+=== upd  196/244 | step  401408 | mean_ep_len  570.2 | mean_ep_rew  570.2 | pg_loss -0.009 | v_loss 63.504 | ent 1.866 | clipfrac 0.142 | sps 4330 ===
+ep   709 | step  401739 | survived  690 | rollout 197/244
+ep   710 | step  402739 | survived 1000 | rollout 197/244
+ep   711 | step  402996 | survived  257 | rollout 197/244
+ep   712 | step  403164 | survived  168 | rollout 197/244
+=== upd  197/244 | step  403456 | mean_ep_len  559.5 | mean_ep_rew  559.5 | pg_loss -0.026 | v_loss 17.574 | ent 2.091 | clipfrac 0.164 | sps 4331 ===
+ep   713 | step  404164 | survived 1000 | rollout 198/244
+ep   714 | step  404589 | survived  425 | rollout 198/244
+ep   715 | step  404855 | survived  266 | rollout 198/244
+=== upd  198/244 | step  405504 | mean_ep_len  564.6 | mean_ep_rew  564.6 | pg_loss +0.010 | v_loss 101.367 | ent 2.240 | clipfrac 0.157 | sps 4333 ===
+ep   716 | step  405855 | survived 1000 | rollout 199/244
+ep   717 | step  406349 | survived  494 | rollout 199/244
+ep   718 | step  406912 | survived  563 | rollout 199/244
+=== upd  199/244 | step  407552 | mean_ep_len  565.8 | mean_ep_rew  565.8 | pg_loss -0.016 | v_loss 25.052 | ent 1.904 | clipfrac 0.221 | sps 4334 ===
+ep   719 | step  407815 | survived  903 | rollout 200/244
+ep   720 | step  408815 | survived 1000 | rollout 200/244
+ep   721 | step  409164 | survived  349 | rollout 200/244
+=== upd  200/244 | step  409600 | mean_ep_len  564.3 | mean_ep_rew  564.3 | pg_loss -0.055 | v_loss 264.167 | ent 2.236 | clipfrac 0.151 | sps 4334 ===
+ep   722 | step  409755 | survived  591 | rollout 201/244
+ep   723 | step  410374 | survived  619 | rollout 201/244
+ep   724 | step  410784 | survived  410 | rollout 201/244
+=== upd  201/244 | step  411648 | mean_ep_len  560.5 | mean_ep_rew  560.5 | pg_loss -0.004 | v_loss 111.577 | ent 2.076 | clipfrac 0.193 | sps 4325 ===
+ep   725 | step  411660 | survived  876 | rollout 202/244
+ep   726 | step  412122 | survived  462 | rollout 202/244
+ep   727 | step  413097 | survived  975 | rollout 202/244
+ep   728 | step  413535 | survived  438 | rollout 202/244
+=== upd  202/244 | step  413696 | mean_ep_len  579.6 | mean_ep_rew  579.6 | pg_loss +0.044 | v_loss 34.569 | ent 1.804 | clipfrac 0.156 | sps 4325 ===
+ep   729 | step  413948 | survived  413 | rollout 203/244
+ep   730 | step  414434 | survived  486 | rollout 203/244
+ep   731 | step  415434 | survived 1000 | rollout 203/244
+=== upd  203/244 | step  415744 | mean_ep_len  581.6 | mean_ep_rew  581.6 | pg_loss +0.025 | v_loss 37.873 | ent 1.888 | clipfrac 0.120 | sps 4326 ===
+ep   732 | step  416340 | survived  906 | rollout 204/244
+ep   733 | step  417006 | survived  666 | rollout 204/244
+ep   734 | step  417530 | survived  524 | rollout 204/244
+ep   735 | step  417741 | survived  211 | rollout 204/244
+=== upd  204/244 | step  417792 | mean_ep_len  580.4 | mean_ep_rew  580.4 | pg_loss -0.026 | v_loss 126.609 | ent 1.906 | clipfrac 0.175 | sps 4327 ===
+ep   736 | step  418523 | survived  782 | rollout 205/244
+ep   737 | step  419038 | survived  515 | rollout 205/244
+ep   738 | step  419406 | survived  368 | rollout 205/244
+ep   739 | step  419810 | survived  404 | rollout 205/244
+=== upd  205/244 | step  419840 | mean_ep_len  573.8 | mean_ep_rew  573.8 | pg_loss -0.005 | v_loss 22.392 | ent 1.706 | clipfrac 0.116 | sps 4327 ===
+ep   740 | step  420810 | survived 1000 | rollout 206/244
+ep   741 | step  421810 | survived 1000 | rollout 206/244
+=== upd  206/244 | step  421888 | mean_ep_len  573.8 | mean_ep_rew  573.8 | pg_loss -0.011 | v_loss 55.985 | ent 2.154 | clipfrac 0.163 | sps 4328 ===
+ep   742 | step  422810 | survived 1000 | rollout 207/244
+ep   743 | step  423612 | survived  802 | rollout 207/244
+=== upd  207/244 | step  423936 | mean_ep_len  594.9 | mean_ep_rew  594.9 | pg_loss -0.024 | v_loss 47.333 | ent 2.043 | clipfrac 0.170 | sps 4328 ===
+ep   744 | step  424610 | survived  998 | rollout 208/244
+ep   745 | step  425074 | survived  464 | rollout 208/244
+ep   746 | step  425466 | survived  392 | rollout 208/244
+ep   747 | step  425911 | survived  445 | rollout 208/244
+=== upd  208/244 | step  425984 | mean_ep_len  613.0 | mean_ep_rew  613.0 | pg_loss -0.036 | v_loss 75.386 | ent 1.864 | clipfrac 0.147 | sps 4320 ===
+ep   748 | step  426911 | survived 1000 | rollout 209/244
+ep   749 | step  427072 | survived  161 | rollout 209/244
+ep   750 | step  427346 | survived  274 | rollout 209/244
+=== upd  209/244 | step  428032 | mean_ep_len  597.1 | mean_ep_rew  597.1 | pg_loss -0.036 | v_loss 125.906 | ent 1.954 | clipfrac 0.168 | sps 4309 ===
+ep   751 | step  428346 | survived 1000 | rollout 210/244
+ep   752 | step  428561 | survived  215 | rollout 210/244
+ep   753 | step  429561 | survived 1000 | rollout 210/244
+=== upd  210/244 | step  430080 | mean_ep_len  612.9 | mean_ep_rew  612.9 | pg_loss +0.014 | v_loss 137.445 | ent 2.052 | clipfrac 0.179 | sps 4286 ===
+ep   754 | step  430325 | survived  764 | rollout 211/244
+ep   755 | step  431325 | survived 1000 | rollout 211/244
+ep   756 | step  431500 | survived  175 | rollout 211/244
+=== upd  211/244 | step  432128 | mean_ep_len  625.6 | mean_ep_rew  625.6 | pg_loss -0.017 | v_loss 61.841 | ent 1.857 | clipfrac 0.187 | sps 4271 ===
+ep   757 | step  432500 | survived 1000 | rollout 212/244
+ep   758 | step  432944 | survived  444 | rollout 212/244
+ep   759 | step  433944 | survived 1000 | rollout 212/244
+ep   760 | step  434116 | survived  172 | rollout 212/244
+=== upd  212/244 | step  434176 | mean_ep_len  627.5 | mean_ep_rew  627.5 | pg_loss -0.011 | v_loss 172.040 | ent 1.957 | clipfrac 0.122 | sps 4256 ===
+ep   761 | step  434902 | survived  786 | rollout 213/244
+ep   762 | step  435495 | survived  593 | rollout 213/244
+ep   763 | step  435711 | survived  216 | rollout 213/244
+=== upd  213/244 | step  436224 | mean_ep_len  630.9 | mean_ep_rew  630.9 | pg_loss -0.033 | v_loss 66.624 | ent 1.873 | clipfrac 0.146 | sps 4248 ===
+ep   764 | step  436626 | survived  915 | rollout 214/244
+ep   765 | step  437560 | survived  934 | rollout 214/244
+ep   766 | step  438234 | survived  674 | rollout 214/244
+=== upd  214/244 | step  438272 | mean_ep_len  647.6 | mean_ep_rew  647.6 | pg_loss +0.026 | v_loss 10.099 | ent 1.944 | clipfrac 0.163 | sps 4237 ===
+ep   767 | step  439234 | survived 1000 | rollout 215/244
+ep   768 | step  439731 | survived  497 | rollout 215/244
+ep   769 | step  439881 | survived  150 | rollout 215/244
+ep   770 | step  440218 | survived  337 | rollout 215/244
+=== upd  215/244 | step  440320 | mean_ep_len  628.1 | mean_ep_rew  628.1 | pg_loss -0.011 | v_loss 27.460 | ent 1.738 | clipfrac 0.169 | sps 4233 ===
+ep   771 | step  440849 | survived  631 | rollout 216/244
+ep   772 | step  441849 | survived 1000 | rollout 216/244
+ep   773 | step  442259 | survived  410 | rollout 216/244
+=== upd  216/244 | step  442368 | mean_ep_len  637.7 | mean_ep_rew  637.7 | pg_loss +0.081 | v_loss 26.014 | ent 1.859 | clipfrac 0.177 | sps 4234 ===
+ep   774 | step  442747 | survived  488 | rollout 217/244
+ep   775 | step  443647 | survived  900 | rollout 217/244
+ep   776 | step  444084 | survived  437 | rollout 217/244
+ep   777 | step  444353 | survived  269 | rollout 217/244
+=== upd  217/244 | step  444416 | mean_ep_len  625.1 | mean_ep_rew  625.1 | pg_loss +0.033 | v_loss 28.214 | ent 1.662 | clipfrac 0.131 | sps 4234 ===
+ep   778 | step  445262 | survived  909 | rollout 218/244
+ep   779 | step  446096 | survived  834 | rollout 218/244
+=== upd  218/244 | step  446464 | mean_ep_len  643.0 | mean_ep_rew  643.0 | pg_loss -0.012 | v_loss 24.259 | ent 1.974 | clipfrac 0.150 | sps 4235 ===
+ep   780 | step  447051 | survived  955 | rollout 219/244
+ep   781 | step  448051 | survived 1000 | rollout 219/244
+ep   782 | step  448492 | survived  441 | rollout 219/244
+=== upd  219/244 | step  448512 | mean_ep_len  643.0 | mean_ep_rew  643.0 | pg_loss -0.034 | v_loss 90.658 | ent 2.079 | clipfrac 0.207 | sps 4236 ===
+ep   783 | step  448814 | survived  322 | rollout 220/244
+ep   784 | step  449401 | survived  587 | rollout 220/244
+ep   785 | step  449559 | survived  158 | rollout 220/244
+ep   786 | step  450472 | survived  913 | rollout 220/244
+=== upd  220/244 | step  450560 | mean_ep_len  639.0 | mean_ep_rew  639.0 | pg_loss -0.014 | v_loss 128.027 | ent 1.667 | clipfrac 0.132 | sps 4237 ===
+ep   787 | step  451073 | survived  601 | rollout 221/244
+ep   788 | step  451513 | survived  440 | rollout 221/244
+ep   789 | step  452513 | survived 1000 | rollout 221/244
+=== upd  221/244 | step  452608 | mean_ep_len  654.1 | mean_ep_rew  654.1 | pg_loss -0.038 | v_loss 73.633 | ent 1.648 | clipfrac 0.136 | sps 4238 ===
+   ^ new best mean_ep_len 654.1 (saved -> ppo_dodge_3d_best.pt)
+ep   790 | step  452683 | survived  170 | rollout 222/244
+ep   791 | step  453121 | survived  438 | rollout 222/244
+ep   792 | step  453641 | survived  520 | rollout 222/244
+ep   793 | step  454150 | survived  509 | rollout 222/244
+=== upd  222/244 | step  454656 | mean_ep_len  610.8 | mean_ep_rew  610.8 | pg_loss -0.035 | v_loss 31.264 | ent 1.525 | clipfrac 0.124 | sps 4239 ===
+ep   794 | step  454758 | survived  608 | rollout 223/244
+ep   795 | step  455196 | survived  438 | rollout 223/244
+ep   796 | step  456139 | survived  943 | rollout 223/244
+ep   797 | step  456304 | survived  165 | rollout 223/244
+=== upd  223/244 | step  456704 | mean_ep_len  607.9 | mean_ep_rew  607.9 | pg_loss +0.004 | v_loss 14.615 | ent 1.577 | clipfrac 0.119 | sps 4238 ===
+ep   798 | step  457304 | survived 1000 | rollout 224/244
+ep   799 | step  458304 | survived 1000 | rollout 224/244
+ep   800 | step  458500 | survived  196 | rollout 224/244
+=== upd  224/244 | step  458752 | mean_ep_len  623.1 | mean_ep_rew  623.1 | pg_loss -0.009 | v_loss 13.258 | ent 1.542 | clipfrac 0.104 | sps 4239 ===
+ep   801 | step  458877 | survived  377 | rollout 225/244
+ep   802 | step  459069 | survived  192 | rollout 225/244
+ep   803 | step  459514 | survived  445 | rollout 225/244
+ep   804 | step  460144 | survived  630 | rollout 225/244
+ep   805 | step  460346 | survived  202 | rollout 225/244
+ep   806 | step  460587 | survived  241 | rollout 225/244
+=== upd  225/244 | step  460800 | mean_ep_len  581.7 | mean_ep_rew  581.7 | pg_loss -0.030 | v_loss 102.682 | ent 1.322 | clipfrac 0.078 | sps 4239 ===
+ep   807 | step  461054 | survived  467 | rollout 226/244
+ep   808 | step  461598 | survived  544 | rollout 226/244
+ep   809 | step  461744 | survived  146 | rollout 226/244
+ep   810 | step  462221 | survived  477 | rollout 226/244
+ep   811 | step  462370 | survived  149 | rollout 226/244
+=== upd  226/244 | step  462848 | mean_ep_len  549.4 | mean_ep_rew  549.4 | pg_loss -0.044 | v_loss 174.526 | ent 1.566 | clipfrac 0.115 | sps 4240 ===
+ep   812 | step  462891 | survived  521 | rollout 227/244
+ep   813 | step  463508 | survived  617 | rollout 227/244
+ep   814 | step  463981 | survived  473 | rollout 227/244
+=== upd  227/244 | step  464896 | mean_ep_len  547.1 | mean_ep_rew  547.1 | pg_loss -0.037 | v_loss 55.560 | ent 1.746 | clipfrac 0.140 | sps 4241 ===
+ep   815 | step  464981 | survived 1000 | rollout 228/244
+ep   816 | step  465775 | survived  794 | rollout 228/244
+ep   817 | step  466775 | survived 1000 | rollout 228/244
+=== upd  228/244 | step  466944 | mean_ep_len  550.8 | mean_ep_rew  550.8 | pg_loss -0.034 | v_loss 140.697 | ent 1.745 | clipfrac 0.113 | sps 4241 ===
+ep   818 | step  467137 | survived  362 | rollout 229/244
+ep   819 | step  467296 | survived  159 | rollout 229/244
+ep   820 | step  467449 | survived  153 | rollout 229/244
+ep   821 | step  467609 | survived  160 | rollout 229/244
+ep   822 | step  468609 | survived 1000 | rollout 229/244
+=== upd  229/244 | step  468992 | mean_ep_len  535.2 | mean_ep_rew  535.2 | pg_loss -0.013 | v_loss 86.472 | ent 1.799 | clipfrac 0.114 | sps 4242 ===
+ep   823 | step  469149 | survived  540 | rollout 230/244
+ep   824 | step  469291 | survived  142 | rollout 230/244
+ep   825 | step  469551 | survived  260 | rollout 230/244
+ep   826 | step  470300 | survived  749 | rollout 230/244
+ep   827 | step  470525 | survived  225 | rollout 230/244
+ep   828 | step  470856 | survived  331 | rollout 230/244
+=== upd  230/244 | step  471040 | mean_ep_len  511.9 | mean_ep_rew  511.9 | pg_loss -0.016 | v_loss 82.472 | ent 1.649 | clipfrac 0.128 | sps 4241 ===
+ep   829 | step  471246 | survived  390 | rollout 231/244
+ep   830 | step  472151 | survived  905 | rollout 231/244
+=== upd  231/244 | step  473088 | mean_ep_len  502.0 | mean_ep_rew  502.0 | pg_loss -0.025 | v_loss 60.391 | ent 2.195 | clipfrac 0.217 | sps 4241 ===
+ep   831 | step  473138 | survived  987 | rollout 232/244
+ep   832 | step  473279 | survived  141 | rollout 232/244
+ep   833 | step  473934 | survived  655 | rollout 232/244
+ep   834 | step  474154 | survived  220 | rollout 232/244
+ep   835 | step  474444 | survived  290 | rollout 232/244
+=== upd  232/244 | step  475136 | mean_ep_len  497.7 | mean_ep_rew  497.7 | pg_loss -0.005 | v_loss 60.466 | ent 1.401 | clipfrac 0.121 | sps 4237 ===
+ep   836 | step  475444 | survived 1000 | rollout 233/244
+ep   837 | step  476126 | survived  682 | rollout 233/244
+ep   838 | step  476569 | survived  443 | rollout 233/244
+ep   839 | step  476984 | survived  415 | rollout 233/244
+=== upd  233/244 | step  477184 | mean_ep_len  489.4 | mean_ep_rew  489.4 | pg_loss -0.028 | v_loss 41.206 | ent 1.547 | clipfrac 0.147 | sps 4238 ===
+ep   840 | step  477371 | survived  387 | rollout 234/244
+ep   841 | step  478371 | survived 1000 | rollout 234/244
+ep   842 | step  478854 | survived  483 | rollout 234/244
+=== upd  234/244 | step  479232 | mean_ep_len  504.3 | mean_ep_rew  504.3 | pg_loss -0.024 | v_loss 4.058 | ent 1.659 | clipfrac 0.125 | sps 4239 ===
+ep   843 | step  479429 | survived  575 | rollout 235/244
+ep   844 | step  479708 | survived  279 | rollout 235/244
+ep   845 | step  479809 | survived  101 | rollout 235/244
+ep   846 | step  480684 | survived  875 | rollout 235/244
+=== upd  235/244 | step  481280 | mean_ep_len  490.9 | mean_ep_rew  490.9 | pg_loss -0.017 | v_loss 94.499 | ent 1.702 | clipfrac 0.169 | sps 4239 ===
+ep   847 | step  481684 | survived 1000 | rollout 236/244
+ep   848 | step  482572 | survived  888 | rollout 236/244
+ep   849 | step  482720 | survived  148 | rollout 236/244
+=== upd  236/244 | step  483328 | mean_ep_len  488.3 | mean_ep_rew  488.3 | pg_loss -0.023 | v_loss 11.989 | ent 1.796 | clipfrac 0.212 | sps 4240 ===
+ep   850 | step  483496 | survived  776 | rollout 237/244
+ep   851 | step  484443 | survived  947 | rollout 237/244
+ep   852 | step  485048 | survived  605 | rollout 237/244
+=== upd  237/244 | step  485376 | mean_ep_len  519.6 | mean_ep_rew  519.6 | pg_loss -0.029 | v_loss 137.669 | ent 1.669 | clipfrac 0.175 | sps 4242 ===
+ep   853 | step  486048 | survived 1000 | rollout 238/244
+ep   854 | step  486679 | survived  631 | rollout 238/244
+ep   855 | step  486898 | survived  219 | rollout 238/244
+ep   856 | step  487187 | survived  289 | rollout 238/244
+=== upd  238/244 | step  487424 | mean_ep_len  532.0 | mean_ep_rew  532.0 | pg_loss -0.001 | v_loss 60.498 | ent 1.566 | clipfrac 0.145 | sps 4243 ===
+ep   857 | step  487531 | survived  344 | rollout 239/244
+ep   858 | step  488526 | survived  995 | rollout 239/244
+ep   859 | step  489438 | survived  912 | rollout 239/244
+=== upd  239/244 | step  489472 | mean_ep_len  553.9 | mean_ep_rew  553.9 | pg_loss -0.026 | v_loss 95.077 | ent 1.955 | clipfrac 0.135 | sps 4244 ===
+ep   860 | step  490006 | survived  568 | rollout 240/244
+ep   861 | step  490599 | survived  593 | rollout 240/244
+=== upd  240/244 | step  491520 | mean_ep_len  564.6 | mean_ep_rew  564.6 | pg_loss -0.042 | v_loss 48.955 | ent 1.588 | clipfrac 0.190 | sps 4245 ===
+ep   862 | step  491530 | survived  931 | rollout 241/244
+ep   863 | step  492530 | survived 1000 | rollout 241/244
+ep   864 | step  492698 | survived  168 | rollout 241/244
+ep   865 | step  492907 | survived  209 | rollout 241/244
+ep   866 | step  493207 | survived  300 | rollout 241/244
+=== upd  241/244 | step  493568 | mean_ep_len  548.6 | mean_ep_rew  548.6 | pg_loss -0.022 | v_loss 46.242 | ent 1.418 | clipfrac 0.107 | sps 4246 ===
+ep   867 | step  493901 | survived  694 | rollout 242/244
+ep   868 | step  494325 | survived  424 | rollout 242/244
+ep   869 | step  494486 | survived  161 | rollout 242/244
+ep   870 | step  495486 | survived 1000 | rollout 242/244
+=== upd  242/244 | step  495616 | mean_ep_len  560.7 | mean_ep_rew  560.7 | pg_loss -0.014 | v_loss 17.372 | ent 1.513 | clipfrac 0.184 | sps 4244 ===
+ep   871 | step  496068 | survived  582 | rollout 243/244
+ep   872 | step  496196 | survived  128 | rollout 243/244
+ep   873 | step  496416 | survived  220 | rollout 243/244
+ep   874 | step  497036 | survived  620 | rollout 243/244
+=== upd  243/244 | step  497664 | mean_ep_len  554.9 | mean_ep_rew  554.9 | pg_loss -0.010 | v_loss 26.890 | ent 1.646 | clipfrac 0.130 | sps 4243 ===
+ep   875 | step  497723 | survived  687 | rollout 244/244
+ep   876 | step  498404 | survived  681 | rollout 244/244
+ep   877 | step  499404 | survived 1000 | rollout 244/244
+=== upd  244/244 | step  499712 | mean_ep_len  577.6 | mean_ep_rew  577.6 | pg_loss +0.005 | v_loss 1.184 | ent 1.570 | clipfrac 0.161 | sps 4236 ===
+
+Saved checkpoint to ppo_dodge_3d.pt (global_step = 499712)
+
+=== Auto-eval (deterministic, source: ppo_dodge_3d_best.pt) ===
+Eval over 20 episodes: mean=578.6  std=337.0  min=124  max=1000
+
+=== Auto-GIF: seed=7 -> trained_agent_3d.gif ===
+Episode lasted 1000 steps. Rendering 1000 frames -> trained_agent_3d.gif
+Saved 500 frames to trained_agent_3d.gif

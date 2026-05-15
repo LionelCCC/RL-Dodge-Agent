@@ -1,13 +1,23 @@
 # RL Dodge Agent
 
-A small PPO agent that learns to dodge projectiles in a 2D arena.
+A small PPO agent that learns to dodge projectiles. Two envs ship in this repo:
 
-- **`dodge_env.py`** — the environment (Gymnasium-compatible)
+- **`dodge_env.py`** — 2D arena (9 discrete actions)
+- **`dodge_env_3d.py`** — 3D box (27 discrete actions, z-axis added)
+
+Every script picks the env with `--env {2d, 3d}` (default `2d`). The two envs
+keep separate checkpoint files so 2D and 3D runs don't clobber each other.
+
+Files:
+
+- **`dodge_env.py`** / **`dodge_env_3d.py`** — environments
+- **`env_factory.py`** — `make_env(env_name)` and per-env defaults (single switchboard)
 - **`ppo_agent.py`** — PPO trainer + the ActorCritic network
 - **`watch_agent.py`** — load a trained checkpoint, watch it / save GIF / eval
 - **`random_agent.py`** — the random-action baseline (sanity check)
 - **`GLOSSARY.md`** — what every term in the logs means
-- **`ppo_dodge.pt`** — saved checkpoint (created/updated when you train)
+- **`ppo_dodge.pt`** / **`ppo_dodge_3d.pt`** — latest weights, per env
+- **`ppo_dodge_best.pt`** / **`ppo_dodge_3d_best.pt`** — best-by-mean checkpoint, per env
 
 ---
 
@@ -91,11 +101,13 @@ Be careful:
 
 | File | Purpose | Update when |
 |---|---|---|
+| `env_factory.py` | `make_env(env_name)` + per-env defaults (spawn distance, curriculum presets, checkpoint paths). | You add a new env. |
+| `dodge_env_3d.py` | 3D version of the env (27 actions, z-axis, top-down render). | You tune 3D-specific knobs. |
 | `GLOSSARY.md` | Plain-English meaning of parameters, log columns, and PPO terms. | You add/tune a new knob or forget what a term means. |
-| `training.log` | Saved training console output. | You want to preserve a run's learning curve. |
-| `ppo_dodge.pt` | Latest saved checkpoint. | Training runs or resumes. |
-| `ppo_dodge_best.pt` | Best checkpoint from the run, chosen by rolling `mean_ep_len`. | PPO finds a good policy and later regresses. |
-| `trained_agent.gif` | Latest visual sample of the saved agent. | You refresh the agent or want a quick progress visual. |
+| `training.log`, `training_easy.log`, `training_target.log`, `training_3d.log` | Saved training console output, one per run/stage. | You want to preserve a run's learning curve. |
+| `ppo_dodge.pt` / `ppo_dodge_3d.pt` | Latest saved checkpoint, per env. | Training runs or resumes. |
+| `ppo_dodge_best.pt` / `ppo_dodge_3d_best.pt` | Best checkpoint from the run, chosen by rolling `mean_ep_len`, per env. | PPO finds a good policy and later regresses. |
+| `trained_agent.gif` / `trained_agent_3d.gif` | Latest visual sample of the saved agent, per env. | You refresh the agent or want a quick progress visual. |
 
 ---
 
@@ -127,13 +139,27 @@ Latest trained-agent result (curriculum: easy 1M → target 500k transfer):
 
 Comparison block (all evals are deterministic argmax, on **target** difficulty unless noted):
 
+**2D env:**
+
 | Configuration | Mean | Std | Min | Max | Notes |
 |---|---|---|---|---|---|
 | Random baseline | 267.4 | 191.4 | 55 | 940 | 20 eps |
 | No-curriculum 1M target | 288.7 | 103.5 | 126 | 529 | prior run, kept for reference |
 | Easy-stage best evaluated on **easy** | 397.9 | 213.1 | 175 | 919 | auto-eval at end of stage 1 |
 | Easy-stage best evaluated on target (raw transfer, no finetune) | 309.8 | 182.9 | 39 | 1000 | shows transfer alone helps a little |
-| **Curriculum: easy 1M + target 500k** | **444.5** | 310.3 | 95 | 1000 | headline result, 30 eps |
+| **Curriculum: easy 1M + target 500k** | **444.5** | 310.3 | 95 | 1000 | headline 2D result, 30 eps |
+
+**3D env (new):**
+
+| Configuration | Mean | Std | Min | Max | Notes |
+|---|---|---|---|---|---|
+| Random baseline | 499.2 | 315.3 | 62 | 1000 | 20 eps; 3D random is *much* higher than 2D random (see "What we learned from the 3D port") |
+| PPO no-curriculum 1M target | **671.0** | 299.7 | 186 | 1000 | auto-eval at end of training, 20 eps |
+| Peak training rolling-mean | 692.9 | — | — | — | best checkpoint = upd ~485 (very late in training; no large regression) |
+
+**3D headline:** PPO beats 3D random by +34% (499.2 → 671.0) with the *same*
+hyperparameters as 2D. Auto-eval source: `ppo_dodge_3d_best.pt`. Sample GIF:
+`trained_agent_3d.gif` (top-down view, z encoded by circle size + 1D z-strip).
 
 Latest visual sample:
 
@@ -201,32 +227,57 @@ Note: this env now observes 8 projectiles instead of 5, so older checkpoints
 from the 5-projectile env will not load. Start fresh after this change.
 
 ```bash
-# Default: 300k steps, headless, ~70s on CPU.
+# 2D (default), 300k steps, headless, ~70s on CPU.
 python3 ppo_agent.py
 
-# Longer training:
+# 3D — same trainer, just pick the env.
+python3 ppo_agent.py --env 3d --steps 1_000_000
+
+# Longer training (2D):
 python3 ppo_agent.py --steps 1_000_000
 
 # Easier curriculum stage: wider spawn distance, longer reaction time.
 python3 ppo_agent.py --steps 1_000_000 --curriculum easy
 
 # Optional: archive the easy-stage source before target transfer.
-cp ppo_dodge_best.pt ppo_dodge_easy_best.pt
+cp ppo_dodge_best.pt ppo_dodge_easy_best.pt          # 2D
+cp ppo_dodge_3d_best.pt ppo_dodge_3d_easy_best.pt    # 3D, when running curriculum there
 
 # Transfer from easy -> target difficulty. This replaces ppo_dodge_best.pt
 # with the best target-stage checkpoint once target training improves.
 python3 ppo_agent.py --steps 500_000 --curriculum target --resume ppo_dodge_best.pt
 
-# Resume from the existing ppo_dodge.pt (continues from saved weights):
-python3 ppo_agent.py --resume
+# Resume from the env's default latest checkpoint:
+python3 ppo_agent.py --resume               # loads ppo_dodge.pt (2D default)
+python3 ppo_agent.py --env 3d --resume      # loads ppo_dodge_3d.pt
 
 # Resume from a specific file:
 python3 ppo_agent.py --resume my_old_run.pt
 
 # Train with a live window (slow — 30 fps cap). Close the window or hit ESC
-# (or Ctrl-C) to save & stop.
+# (or Ctrl-C) to save & stop. 3D rendering is now a true perspective view
+# (orbit camera, floor grid, depth-sorted spheres + shadows).
 python3 ppo_agent.py --render
+python3 ppo_agent.py --env 3d --render
 ```
+
+**3D window controls** (active whenever the 3D env is rendering in human mode —
+during `--render` training or `watch_agent.py --env 3d --mode human`):
+
+| Input | Effect |
+|---|---|
+| Left-mouse drag | Orbit the camera (azimuth + elevation) |
+| Arrow keys | Orbit the camera (held = continuous) |
+| Mouse wheel | Zoom in / out (`camera_distance`) |
+| `1` `2` `3` `4` `5` | Set playback speed directly to 1x / 2x / 4x / 8x / 16x |
+| `+` / `-` (or `=` / `-`) | Step playback speed up / down one level |
+| `R` | Reset the camera to the default "whole arena visible" view |
+| `ESC` or window X | Quit cleanly (saves checkpoint if training) |
+
+The default 3D camera is pulled back (`DEFAULT_DISTANCE = 1300`) so the entire
+arena is always in frame. The speed multiplier just raises the `clock.tick`
+FPS cap — there's no memory cost, just more CPU. At 16x the simulation
+finishes a 1000-step episode in ~2 seconds on a modern laptop.
 
 ### Stop training cleanly
 
@@ -237,8 +288,11 @@ python3 ppo_agent.py --render
 ### Watch the trained agent
 
 ```bash
-# Live window, 5 episodes back-to-back, deterministic policy:
+# 2D, live window, 5 episodes back-to-back, deterministic policy:
 python3 watch_agent.py --mode human
+
+# 3D — same UI, top-down view + z-strip:
+python3 watch_agent.py --env 3d --mode human
 
 # Single episode, sampling actions instead of argmax (looks more natural):
 python3 watch_agent.py --mode human --episodes 1 --stochastic
@@ -255,7 +309,9 @@ python3 watch_agent.py --mode eval --episodes 30 --curriculum easy
 ### Save a GIF
 
 ```bash
-python3 watch_agent.py --mode gif --out trained_agent.gif --seed 7 --curriculum target
+# 2D writes trained_agent.gif by default; 3D writes trained_agent_3d.gif.
+python3 watch_agent.py --mode gif --seed 7 --curriculum target
+python3 watch_agent.py --env 3d --mode gif --seed 7 --curriculum target
 ```
 
 ### Headless evaluation (just numbers)
@@ -263,16 +319,20 @@ python3 watch_agent.py --mode gif --out trained_agent.gif --seed 7 --curriculum 
 ```bash
 # Mean / std / min / max episode length over 30 episodes:
 python3 watch_agent.py --mode eval --episodes 30 --curriculum target
+python3 watch_agent.py --env 3d --mode eval --episodes 30 --curriculum target
 ```
 
 ### Sanity-check the env with the random baseline
 
 ```bash
-python3 random_agent.py
+python3 random_agent.py            # 2D random ≈ 267 mean
+python3 random_agent.py --env 3d   # 3D random ≈ 499 mean (way higher — see "What we learned")
 ```
-Random survives ~267 steps on average in the current local-spawn env
-(20 episodes, mean 267.4, std 191.4, min 55, max 940). Whatever you train
-must clearly beat that.
+2D random survives ~267 steps on average in the current local-spawn env
+(20 episodes, mean 267.4, std 191.4, min 55, max 940). 3D random survives
+~499 steps over the same number of episodes — the 3D ball aim misses much
+more often than the 2D disk aim. Whatever you train must clearly beat its
+own env's random baseline.
 
 ---
 
@@ -377,6 +437,58 @@ spec, not the agent. Spec-fix > reward-shaping hacks > algorithm tweaks.
 **Diagnostic you can re-use.** If `mean_ep_len` climbs but the agent looks
 boring in the live window (stationary, not reacting), suspect spec gaming
 before celebrating. A trained agent that doesn't *visibly* dodge usually isn't.
+
+---
+
+## What we learned from the 3D port
+
+The point of porting to 3D wasn't the 3D itself — it was finding out what
+actually transfers from 2D work. Findings, with their honest surprises:
+
+**What transferred cleanly:**
+- All PPO hyperparameters worked as-is. No tuning. Same `LR=3e-4`,
+  `ENT_COEF=0.005`, `NUM_STEPS=2048`, etc.
+- The best-checkpoint pattern caught the same kind of late-training noise
+  it did in 2D.
+- The entropy / clipfrac / v_loss diagnostics meant the exact same things
+  and pointed at the same conclusions.
+- Curriculum API (`CURRICULUM_PRESETS`, `--curriculum`) compiled clean —
+  same code, just different defaults per env.
+
+**What broke / required new thinking:**
+- **Action space went from 9 to 27.** Initial entropy is `ln(27) ≈ 3.30`
+  (vs `ln(9) ≈ 2.20`). Entropy still dropped to ~1.7 by end-of-training,
+  but the per-action probability mass starts much smaller.
+- **`obs_dim` is now 54** (6 agent + 8 projectiles × 6). Old 2D checkpoints
+  can't load — the safety check in `load_agent` catches this.
+- **Separate checkpoint files** were necessary. Mixing 2D and 3D into the
+  same `ppo_dodge.pt` would have silently broken on the next run when the
+  obs/action shapes flipped.
+
+**What surprised me (the prediction was: "I don't know"):**
+- **The 3D *random* baseline is much higher (499.2) than 2D's (267.4).**
+  Reason: `AIM_RADIUS=100` defines an offset *ball* in 3D vs an offset
+  *disk* in 2D. The agent occupies a fixed sphere of radius 15. The
+  ratio "agent volume / aim-target volume" is ~0.3% in 3D vs ~2.2% in
+  2D — projectiles miss far more often in 3D, even when aimed. This means
+  "beat random" is a much higher bar in 3D, and the env may be *too*
+  forgiving at the current `AIM_RADIUS`. If you want the 3D env to be as
+  hard relative to random as the 2D env is, drop `AIM_RADIUS` in
+  `dodge_env_3d.py` to ~40-50.
+- **3D training was *less* regressive than 2D.** Peak rolling-mean
+  (692.9) was at update ~485 of 488 — almost no drift. My guess: 27
+  actions means each PPO update is averaging gradient signal across a
+  wider distribution, so single-step value-function poisoning has less
+  bite. Worth confirming with a longer run.
+- **The argmax/sampled gap stayed (~10%)**, just like in 2D. Same fix
+  applies: a lower-`ENT_COEF` polish stage would close it.
+
+**Open question I'd want to answer next.** Whether **continuous actions**
+(swap `Categorical` for `Normal` in the actor head) would be cleanly
+better than 27-way discrete. Argument for: continuous is a more natural
+fit for "3D unit vector velocity." Argument against: discrete-with-many-
+actions has been working fine and continuous needs a separate codepath
+(reparam trick, no clip on logits, etc).
 
 ---
 

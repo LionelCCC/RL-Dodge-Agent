@@ -50,20 +50,26 @@ start here.
 
 ### Command-line knobs
 
+All three CLI scripts (`ppo_agent.py`, `watch_agent.py`, `random_agent.py`)
+accept `--env {2d, 3d}` (default `2d`). The env you pick determines which
+checkpoint files are used (`ppo_dodge.pt` vs `ppo_dodge_3d.pt`, etc.).
+
 | Command option | Meaning | Example |
 |---|---|---|
+| `--env 2d` / `--env 3d` | Pick which env to run on. Default `2d`. | `python3 ppo_agent.py --env 3d --steps 1_000_000` |
 | `ppo_agent.py --steps N` | Train for N total env steps this session. | `python3 ppo_agent.py --steps 1_000_000` |
-| `ppo_agent.py --resume` | Continue from `ppo_dodge.pt`. | `python3 ppo_agent.py --resume` |
+| `ppo_agent.py --resume` | Continue from the env's default latest checkpoint. | `python3 ppo_agent.py --env 3d --resume` |
 | `ppo_agent.py --render` | Watch the training loop live, slower. | `python3 ppo_agent.py --render` |
 | `ppo_agent.py --curriculum easy` | Train with easier projectile spawn distances. | `python3 ppo_agent.py --steps 1_000_000 --curriculum easy` |
 | `ppo_agent.py --curriculum target` | Train/eval on the real target difficulty. | `python3 ppo_agent.py --curriculum target --resume ppo_dodge_best.pt` |
-| `watch_agent.py --mode human` | Open live side window using saved checkpoint. | `python3 watch_agent.py --mode human` |
+| `watch_agent.py --mode human` | Open live side window using saved checkpoint. | `python3 watch_agent.py --env 3d --mode human` |
 | `watch_agent.py --mode eval` | Run saved checkpoint headlessly and print stats. | `python3 watch_agent.py --mode eval --episodes 30` |
-| `watch_agent.py --mode gif` | Save a visual sample GIF. | `python3 watch_agent.py --mode gif --out trained_agent.gif` |
+| `watch_agent.py --mode gif` | Save a visual sample GIF. Default name depends on env. | `python3 watch_agent.py --env 3d --mode gif` |
 | `watch_agent.py --curriculum easy/target` | Evaluate or visualize under a chosen spawn-distance preset. | `python3 watch_agent.py --mode eval --curriculum target` |
 | `watch_agent.py --stochastic` | Sample actions instead of using best action. | `python3 watch_agent.py --mode human --stochastic` |
 | `watch_agent.py --episodes N` | Number of episodes to watch/evaluate. | `python3 watch_agent.py --mode eval --episodes 50` |
 | `watch_agent.py --seed N` | Pick a reproducible scenario. | `python3 watch_agent.py --mode gif --seed 7` |
+| `random_agent.py --env 3d` | Baseline against the 3D env. | `python3 random_agent.py --env 3d --episodes 20` |
 
 ---
 
@@ -174,6 +180,38 @@ PPO's defining trick: don't let the policy change too much in one update.
 | `AIM_RADIUS` | Projectiles aim at `agent_pos + offset(radius=AIM_RADIUS)` | **Bigger = easier** (sprays more, easier to dodge). **Smaller = harder** (more surgical). 100 px is a moderate setting. |
 | `SPAWN_DISTANCE_MIN/MAX` | Projectiles spawn on a local ring this far from the agent, instead of from arena edges. | Target = 220..320. Easy curriculum = 280..400. Smaller = less reaction time, harder. |
 | `MAX_EPISODE_STEPS` | Per-episode timeout | Higher ceiling for "perfect" runs but doesn't change difficulty. |
+
+---
+
+## 7a. The 3D port — what changes and what doesn't
+
+The 3D env (`dodge_env_3d.py`) is a near-clone of the 2D env with a z-axis added.
+
+**What changes:**
+
+| Thing | 2D | 3D |
+|---|---|---|
+| Arena | `ARENA_W × ARENA_H` = 800×600 | `ARENA_W × ARENA_H × ARENA_D` = 800×600×600 |
+| Action space | `Discrete(9)`: stay + 8 compass directions | `Discrete(27)`: each axis independently picks {-1, 0, +1} |
+| Action index 0 means | "stay still" | (-1, -1, -1). Index 13 = stay still. |
+| Initial entropy | `ln(9) ≈ 2.197` | `ln(27) ≈ 3.296` |
+| Obs dim | `4 + K*4 = 36` (with K=8) | `6 + K*6 = 54` |
+| Spawn shell | 2D ring of radius `[smin, smax]` | 3D spherical shell of radius `[smin, smax]` (uniform-direction trick to avoid pole clustering) |
+| Aim offset | uniform on a disk of radius `AIM_RADIUS` | uniform in a ball of radius `AIM_RADIUS` (cube-root trick for uniform-in-ball) |
+| Rendering | direct top-down | top-down with z encoded as circle size + a 1D z-strip at the bottom of the window |
+| Checkpoint files | `ppo_dodge.pt`, `ppo_dodge_best.pt` | `ppo_dodge_3d.pt`, `ppo_dodge_3d_best.pt` |
+| Default GIF | `trained_agent.gif` | `trained_agent_3d.gif` |
+
+**What doesn't change** (and confirmed empirically by retraining):
+PPO hyperparameters, training loop, GAE math, ActorCritic architecture,
+the curriculum API, the best-checkpoint pattern, all the log column meanings.
+
+**Empirical note (counterintuitive):** the *random* baseline is higher in 3D
+(~499) than in 2D (~267). Same `AIM_RADIUS=100`, but in 3D it defines a
+ball; the agent occupies a much smaller fraction of that ball than the
+analogous disk in 2D. So a random aim misses more often in 3D. The "beat
+random" bar is higher in 3D; if you want comparable difficulty, lower
+`AIM_RADIUS` in `dodge_env_3d.py`.
 
 ---
 

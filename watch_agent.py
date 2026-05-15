@@ -1,11 +1,14 @@
 """
-Watch a trained PPO agent play DodgeEnv.
+Watch a trained PPO agent play DodgeEnv (2D or 3D).
 
 Modes:
   --mode human  -> opens a pygame window. Close the X or hit ESC to stop.
                    Use --episodes N to play multiple back-to-back.
   --mode gif    -> saves a GIF of one episode (works headless)
   --mode eval   -> headless stats over N episodes
+
+Pick the env with --env {2d, 3d}. Each env has its own pair of checkpoints
+(see env_factory.env_defaults).
 """
 
 import argparse
@@ -13,24 +16,14 @@ import os
 import numpy as np
 import torch
 
-from dodge_env import (
-    DodgeEnv,
-    SPAWN_DISTANCE_MIN,
-    SPAWN_DISTANCE_MAX,
-    CURRICULUM_PRESETS,
-)
-from ppo_agent import (
-    load_agent,
-    CHECKPOINT_PATH,
-    BEST_CHECKPOINT_PATH,
-)
+from env_factory import make_env, env_defaults, ENV_NAMES
+from ppo_agent import load_agent
 
 
-def default_checkpoint():
-    """Prefer the best-by-mean checkpoint; fall back to latest if missing."""
-    if os.path.exists(BEST_CHECKPOINT_PATH):
-        return BEST_CHECKPOINT_PATH
-    return CHECKPOINT_PATH
+def default_checkpoint(env_name):
+    """Prefer the env's best-by-mean checkpoint; fall back to latest if missing."""
+    _smin, _smax, _presets, latest, best = env_defaults(env_name)
+    return best if os.path.exists(best) else latest
 
 
 def pick_action(agent, obs, deterministic=True):
@@ -52,8 +45,8 @@ def run_episode(env, agent, deterministic=True, max_steps=1000,
     if obs.shape[0] != agent.obs_dim:
         raise RuntimeError(
             f"Checkpoint expects obs_dim={agent.obs_dim}, but the current env "
-            f"returns obs_dim={obs.shape[0]}. The environment changed; retrain "
-            "from scratch with `python3 ppo_agent.py` before watching/evaluating."
+            f"returns obs_dim={obs.shape[0]}. Likely you mixed 2D and 3D — "
+            f"check --env and --checkpoint."
         )
     frames = [] if collect_frames else None
     steps = 0
@@ -94,22 +87,21 @@ def save_gif(frames, path, fps=30):
     print(f"Saved {len(keep)} frames to {path}")
 
 
-def watch_live(agent, episodes, deterministic, seed,
-               spawn_distance_min=SPAWN_DISTANCE_MIN,
-               spawn_distance_max=SPAWN_DISTANCE_MAX):
-    """Open a window and play N episodes back-to-back. Stops cleanly on window close / ESC."""
-    env = DodgeEnv(
-        render_mode="human",
-        spawn_distance_min=spawn_distance_min,
-        spawn_distance_max=spawn_distance_max,
-    )
+def _resolve_spawn(env_name, spawn_min, spawn_max):
+    smin_d, smax_d, _presets, _ckpt, _best = env_defaults(env_name)
+    return (smin_d if spawn_min is None else spawn_min,
+            smax_d if spawn_max is None else spawn_max)
+
+
+def watch_live(agent, env_name, episodes, deterministic, seed,
+               spawn_distance_min=None, spawn_distance_max=None):
+    smin, smax = _resolve_spawn(env_name, spawn_distance_min, spawn_distance_max)
+    env = make_env(env_name, render_mode="human",
+                   spawn_distance_min=smin, spawn_distance_max=smax)
     try:
         for ep in range(1, episodes + 1):
             steps, _, user_quit = run_episode(
-                env,
-                agent,
-                deterministic=deterministic,
-                seed=seed + ep,  # different seed per episode for variety
+                env, agent, deterministic=deterministic, seed=seed + ep,
             )
             print(f"Episode {ep:3d}/{episodes}: survived {steps} steps")
             if user_quit:
@@ -119,15 +111,11 @@ def watch_live(agent, episodes, deterministic, seed,
         env.close()
 
 
-def evaluate(agent, num_episodes=20,
-             spawn_distance_min=SPAWN_DISTANCE_MIN,
-             spawn_distance_max=SPAWN_DISTANCE_MAX):
-    """Headless eval: report mean episode length."""
-    env = DodgeEnv(
-        render_mode=None,
-        spawn_distance_min=spawn_distance_min,
-        spawn_distance_max=spawn_distance_max,
-    )
+def evaluate(agent, env_name, num_episodes=20,
+             spawn_distance_min=None, spawn_distance_max=None):
+    smin, smax = _resolve_spawn(env_name, spawn_distance_min, spawn_distance_max)
+    env = make_env(env_name, render_mode=None,
+                   spawn_distance_min=smin, spawn_distance_max=smax)
     lengths = []
     try:
         for ep in range(num_episodes):
@@ -142,21 +130,15 @@ def evaluate(agent, num_episodes=20,
     return lengths
 
 
-def make_gif(agent, out_path, seed, deterministic,
-             spawn_distance_min=SPAWN_DISTANCE_MIN,
-             spawn_distance_max=SPAWN_DISTANCE_MAX):
-    env = DodgeEnv(
-        render_mode="rgb_array",
-        spawn_distance_min=spawn_distance_min,
-        spawn_distance_max=spawn_distance_max,
-    )
+def make_gif(agent, env_name, out_path, seed, deterministic,
+             spawn_distance_min=None, spawn_distance_max=None):
+    smin, smax = _resolve_spawn(env_name, spawn_distance_min, spawn_distance_max)
+    env = make_env(env_name, render_mode="rgb_array",
+                   spawn_distance_min=smin, spawn_distance_max=smax)
     try:
         steps, frames, _ = run_episode(
-            env,
-            agent,
-            deterministic=deterministic,
-            collect_frames=True,
-            seed=seed,
+            env, agent, deterministic=deterministic,
+            collect_frames=True, seed=seed,
         )
     finally:
         env.close()
@@ -168,15 +150,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("--env", choices=list(ENV_NAMES), default="2d",
+                        help="which env to load. Must match the checkpoint's env.")
     parser.add_argument(
         "--checkpoint", default=None,
-        help=f"checkpoint to load. Defaults to {BEST_CHECKPOINT_PATH} if it "
-             f"exists, else {CHECKPOINT_PATH}.",
+        help="checkpoint to load. Defaults to the env's best (if it exists) else latest.",
     )
     parser.add_argument("--mode", choices=["human", "gif", "eval"], default="human",
                         help="human=live window, gif=save GIF, eval=headless stats")
-    parser.add_argument("--out", default="trained_agent.gif",
-                        help="output path for --mode gif")
+    parser.add_argument("--out", default=None,
+                        help="output path for --mode gif. Default: trained_agent.gif "
+                             "for 2D, trained_agent_3d.gif for 3D.")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--episodes", type=int, default=5,
                         help="how many episodes (used by --mode human and --mode eval)")
@@ -184,59 +168,52 @@ if __name__ == "__main__":
                         help="sample actions instead of taking argmax")
     parser.add_argument(
         "--curriculum",
-        choices=sorted(CURRICULUM_PRESETS),
+        choices=["target", "easy"],
         default="target",
-        help="spawn-distance preset. target=220..320, easy=280..400.",
+        help="spawn-distance preset.",
     )
-    parser.add_argument(
-        "--spawn-distance-min",
-        type=float,
-        default=None,
-        help="override curriculum preset minimum projectile spawn distance.",
-    )
-    parser.add_argument(
-        "--spawn-distance-max",
-        type=float,
-        default=None,
-        help="override curriculum preset maximum projectile spawn distance.",
-    )
+    parser.add_argument("--spawn-distance-min", type=float, default=None,
+                        help="override curriculum preset minimum.")
+    parser.add_argument("--spawn-distance-max", type=float, default=None,
+                        help="override curriculum preset maximum.")
     args = parser.parse_args()
 
-    checkpoint_path = args.checkpoint or default_checkpoint()
-    print(f"Loading checkpoint: {checkpoint_path}")
-    agent = load_agent(checkpoint_path)
-    deterministic = not args.stochastic
-    preset_min, preset_max = CURRICULUM_PRESETS[args.curriculum]
+    _smin_d, _smax_d, presets, _latest, _best = env_defaults(args.env)
+    preset_min, preset_max = presets[args.curriculum]
     spawn_distance_min = (
         args.spawn_distance_min if args.spawn_distance_min is not None else preset_min
     )
     spawn_distance_max = (
         args.spawn_distance_max if args.spawn_distance_max is not None else preset_max
     )
+
+    checkpoint_path = args.checkpoint or default_checkpoint(args.env)
+    print(f"Env: {args.env} | checkpoint: {checkpoint_path}")
     print(f"Spawn distance: {spawn_distance_min:.0f}..{spawn_distance_max:.0f}")
+    agent = load_agent(checkpoint_path)
+    deterministic = not args.stochastic
 
     if args.mode == "eval":
         evaluate(
-            agent,
+            agent, env_name=args.env,
             num_episodes=args.episodes,
             spawn_distance_min=spawn_distance_min,
             spawn_distance_max=spawn_distance_max,
         )
     elif args.mode == "human":
         watch_live(
-            agent,
-            episodes=args.episodes,
-            deterministic=deterministic,
-            seed=args.seed,
+            agent, env_name=args.env,
+            episodes=args.episodes, deterministic=deterministic, seed=args.seed,
             spawn_distance_min=spawn_distance_min,
             spawn_distance_max=spawn_distance_max,
         )
     elif args.mode == "gif":
+        out_path = args.out or (
+            "trained_agent.gif" if args.env == "2d" else f"trained_agent_{args.env}.gif"
+        )
         make_gif(
-            agent,
-            out_path=args.out,
-            seed=args.seed,
-            deterministic=deterministic,
+            agent, env_name=args.env,
+            out_path=out_path, seed=args.seed, deterministic=deterministic,
             spawn_distance_min=spawn_distance_min,
             spawn_distance_max=spawn_distance_max,
         )
