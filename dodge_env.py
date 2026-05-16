@@ -1,328 +1,567 @@
 """
-DodgeEnv: a 2D arena where an agent dodges straight-line projectiles.
-Conforms to the Gymnasium API so any RL algorithm can train on it.
+DodgeEnv: 3D dodge-the-projectiles env with a spherical arena.
+
+  - Arena is a sphere of radius ARENA_RADIUS, centered at the origin.
+    Agent and projectiles live in centered coords (origin = arena center),
+    so obs normalization is just `pos / ARENA_RADIUS` on every axis.
+  - Projectiles spawn on a shell *outside* the arena (distance from origin
+    = ARENA_RADIUS + uniform(SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX)).
+    Always valid by construction — no rejection, no fallback.
+  - The agent observes only projectiles within PERCEPTION_RADIUS. Beyond
+    that, the slot is zero, so obs noise doesn't grow with projectile count.
+  - Agent containment is `||pos|| <= ARENA_RADIUS - AGENT_RADIUS`. No corners,
+    no walls — only "near the surface" states.
+  - Reward = +1/step, episode caps at MAX_EPISODE_STEPS.
+
+Action space: 27 discrete (every (dx, dy, dz) with each in {-1, 0, +1}).
+Observation: 6 (agent xyzvxvyvz) + MAX_PROJECTILES * 6 (closest visible).
+
+Note on `spawn_distance_min/max`: these are SHELL distance (distance OUTSIDE
+the sphere wall), not absolute distance from the agent.
 """
 
+import os
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
 
-# ---- Constants. Put them at the top so they're easy to tweak. ----
-ARENA_W = 800           # arena width in pixels/units
-ARENA_H = 600           # arena height
+# ---- Physics constants -------------------------------------------------------
+ARENA_RADIUS = 200
 AGENT_RADIUS = 15
 PROJECTILE_RADIUS = 5
-AGENT_SPEED = 5.0       # units per step
-PROJECTILE_SPEED = 4.0  # units per step
-MAX_PROJECTILES = 8     # the K in "K closest projectiles the agent sees"
-MAX_EPISODE_STEPS = 1000  # max length of ONE episode (not the total training amount!)
-SPAWN_PROB = 0.03       # chance per step that a new projectile spawns (tunable)
-AIM_RADIUS = 100        # projectiles aim within this many pixels of the agent.
-                        # Small = surgical (hard). Large = spray (easy).
-SPAWN_DISTANCE_MIN = 220  # target difficulty: local spawns this far from the agent
-SPAWN_DISTANCE_MAX = 320  # wider values are easier because reaction time is longer
+AGENT_SPEED = 5.0
+PROJECTILE_SPEED = 4.0
+MAX_PROJECTILES = 8
+MAX_EPISODE_STEPS = 1000
+SPAWN_PROB = 0.06
+AIM_RADIUS = 100
+SPAWN_DISTANCE_MIN = 50           # shell thickness — distance OUTSIDE the sphere
+SPAWN_DISTANCE_MAX = 200
+PERCEPTION_RADIUS = 200           # agent sees projectiles within this radius
 
 CURRICULUM_PRESETS = {
     "target": (SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX),
-    "easy": (280, 400),
+    "easy": (100, 300),
 }
 
-# The 9 discrete actions, as (dx, dy) unit vectors.
-# Index 0 = stay still, 1-8 = the 8 compass directions.
-# We use 1/sqrt(2) ~= 0.707 for diagonals so speed is the same in all directions.
-_INV_SQRT2 = 1.0 / np.sqrt(2.0)
-ACTIONS = np.array([
-    [ 0,  0],            # 0: stay
-    [ 0, -1],            # 1: N (up)
-    [ _INV_SQRT2, -_INV_SQRT2],  # 2: NE
-    [ 1,  0],            # 3: E
-    [ _INV_SQRT2,  _INV_SQRT2],  # 4: SE
-    [ 0,  1],            # 5: S (down)
-    [-_INV_SQRT2,  _INV_SQRT2],  # 6: SW
-    [-1,  0],            # 7: W
-    [-_INV_SQRT2, -_INV_SQRT2],  # 8: NW
-], dtype=np.float32)
+# ---- Output-path conventions -------------------------------------------------
+# Centralizing these here keeps caller scripts from each owning their own
+# string. Each script joins the project root to these names; we don't use
+# absolute paths so the repo stays portable.
+CHECKPOINT_DIR  = "checkpoints"
+LOG_DIR         = "logs"
+ASSETS_DIR      = "assets"
+CHECKPOINT_PATH       = os.path.join(CHECKPOINT_DIR, "ppo_dodge.pt")
+BEST_CHECKPOINT_PATH  = os.path.join(CHECKPOINT_DIR, "ppo_dodge_best.pt")
+DEFAULT_GIF_PATH      = os.path.join(ASSETS_DIR, "trained_agent.gif")
+
+
+def _build_3d_actions():
+    """27 actions: every (dx, dy, dz) with each axis in {-1, 0, +1}.
+    Each non-zero vector is normalized so diagonal speed equals axis speed."""
+    actions = []
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                v = np.array([dx, dy, dz], dtype=np.float32)
+                n = np.linalg.norm(v)
+                if n > 0:
+                    v = v / n
+                actions.append(v)
+    return np.array(actions, dtype=np.float32)
+
+
+ACTIONS = _build_3d_actions()
 
 
 class DodgeEnv(gym.Env):
-    """The dodging environment, Gymnasium-compatible."""
+    """Gymnasium-compatible 3D dodge env with a spherical arena."""
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
     def __init__(
         self,
         render_mode=None,
+        arena_radius=ARENA_RADIUS,
         spawn_distance_min=SPAWN_DISTANCE_MIN,
         spawn_distance_max=SPAWN_DISTANCE_MAX,
+        perception_radius=PERCEPTION_RADIUS,
     ):
         super().__init__()
         self.render_mode = render_mode
-        self.spawn_distance_min = float(spawn_distance_min)
-        self.spawn_distance_max = float(spawn_distance_max)
-        if self.spawn_distance_min <= 0:
-            raise ValueError("spawn_distance_min must be positive")
-        if self.spawn_distance_max < self.spawn_distance_min:
+        self.arena_radius = float(arena_radius)
+        self.spawn_shell_min = float(spawn_distance_min)
+        self.spawn_shell_max = float(spawn_distance_max)
+        self.perception_radius = float(perception_radius)
+        if self.arena_radius <= AGENT_RADIUS:
+            raise ValueError("arena_radius must be larger than AGENT_RADIUS")
+        if self.spawn_shell_min < 0:
+            raise ValueError("spawn_distance_min (shell) must be >= 0")
+        if self.spawn_shell_max < self.spawn_shell_min:
             raise ValueError("spawn_distance_max must be >= spawn_distance_min")
+        if self.perception_radius <= 0:
+            raise ValueError("perception_radius must be positive")
 
-        # Observation: 4 (agent) + MAX_PROJECTILES * 4 (each projectile) floats
-        obs_dim = 4 + MAX_PROJECTILES * 4
-        # We bound observations roughly by arena size. Not strictly enforced,
-        # but it tells downstream code the rough scale.
+        obs_dim = 6 + MAX_PROJECTILES * 6
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float32
         )
+        self.action_space = spaces.Discrete(27)
 
-        # 9 discrete actions: stay still + 8 compass directions
-        self.action_space = spaces.Discrete(9)
-
-        # Internal state, populated in reset()
-        self.agent_pos = None      # np.array([x, y])
-        self.agent_vel = None      # np.array([vx, vy]) — last frame's velocity
-        self.projectiles = None    # list of dicts with pos and vel
+        self.agent_pos = None
+        self.agent_vel = None
+        self.projectiles = None
         self.steps = 0
 
-        # For rendering (we'll fill this in later)
         self._screen = None
         self._clock = None
-
-        # Flag set by render() when the user closes the window or hits ESC.
-        # The training/watch loop should poll this and exit cleanly.
         self.closed_by_user = False
 
+        self.camera_azimuth   = self.DEFAULT_AZIMUTH
+        self.camera_elevation = self.DEFAULT_ELEVATION
+        self.camera_distance  = self.DEFAULT_DISTANCE
+        self._speed_index = 0
+
     # ------------------------------------------------------------------
-    # Gymnasium API: reset()
+    # Gymnasium API
     # ------------------------------------------------------------------
     def reset(self, seed=None, options=None):
-        """Start a new episode. Returns (initial_observation, info_dict)."""
-        super().reset(seed=seed)  # seeds self.np_random for reproducibility
-
-        # Agent starts in the center of the arena, at rest.
-        self.agent_pos = np.array([ARENA_W / 2, ARENA_H / 2], dtype=np.float32)
-        self.agent_vel = np.array([0.0, 0.0], dtype=np.float32)
-
-        # Start with no projectiles. They'll spawn over time inside step().
+        super().reset(seed=seed)
+        self.agent_pos = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.agent_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)
         self.projectiles = []
         self.steps = 0
-
         return self._get_obs(), {}
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-    def _sample_projectile_spawn_pos(self):
-        """Sample a spawn point near the agent but still inside the arena.
-
-        Edge spawns are exploitable: a corner-camping agent gets too much
-        warning time from far-side projectiles. Local ring spawns make every
-        spawn relevant while still leaving a readable reaction window.
-        """
-        low = PROJECTILE_RADIUS
-        high_x = ARENA_W - PROJECTILE_RADIUS
-        high_y = ARENA_H - PROJECTILE_RADIUS
-
-        for _ in range(100):
-            angle = self.np_random.uniform(0.0, 2.0 * np.pi)
-            dist = self.np_random.uniform(self.spawn_distance_min, self.spawn_distance_max)
-            pos = self.agent_pos + dist * np.array([np.cos(angle), np.sin(angle)])
-            if low <= pos[0] <= high_x and low <= pos[1] <= high_y:
-                return pos.astype(np.float32)
-
-        # Fallback for extreme corner cases: sample anywhere in the arena
-        # until the projectile is far enough to be dodgeable.
-        for _ in range(100):
-            pos = np.array([
-                self.np_random.uniform(low, high_x),
-                self.np_random.uniform(low, high_y),
-            ], dtype=np.float32)
-            dist = np.linalg.norm(pos - self.agent_pos)
-            if self.spawn_distance_min <= dist <= self.spawn_distance_max:
-                return pos
-
-        # Last-resort fallback should almost never run, but keeps reset/step
-        # total and avoids crashing if constants are changed aggressively.
-        direction = np.array([ARENA_W / 2, ARENA_H / 2], dtype=np.float32) - self.agent_pos
-        norm = np.linalg.norm(direction) + 1e-8
-        pos = self.agent_pos + direction / norm * self.spawn_distance_min
-        pos[0] = np.clip(pos[0], low, high_x)
-        pos[1] = np.clip(pos[1], low, high_y)
-        return pos.astype(np.float32)
-
-    def _spawn_projectile(self):
-        """Spawn one local projectile, aimed near the agent.
-
-        Aim offset (radius AIM_RADIUS) is the precision difficulty dial:
-          - small radius  -> projectiles aim right at you (hard)
-          - large radius  -> "spray" pattern (easy)
-        """
-        spawn_pos = self._sample_projectile_spawn_pos()
-        x, y = spawn_pos
-
-        # Aim at a random point inside a disk of radius AIM_RADIUS around
-        # the agent's CURRENT position. sqrt() on the radius makes the
-        # samples uniformly distributed over the disk's area (otherwise
-        # they cluster near the center).
-        angle = self.np_random.uniform(0.0, 2.0 * np.pi)
-        r = AIM_RADIUS * np.sqrt(self.np_random.random())
-        target_x = self.agent_pos[0] + r * np.cos(angle)
-        target_y = self.agent_pos[1] + r * np.sin(angle)
-
-        dx = target_x - x
-        dy = target_y - y
-        norm = np.sqrt(dx * dx + dy * dy) + 1e-8  # avoid divide-by-zero
-        vx = (dx / norm) * PROJECTILE_SPEED
-        vy = (dy / norm) * PROJECTILE_SPEED
-
-        self.projectiles.append({
-            "pos": spawn_pos,
-            "vel": np.array([vx, vy], dtype=np.float32),
-        })
-
-    def _get_obs(self):
-        """Build the observation vector the agent sees."""
-        obs = np.zeros(4 + MAX_PROJECTILES * 4, dtype=np.float32)
-
-        # Agent state: position normalized to roughly [-1, 1], velocity normalized.
-        # Normalization makes the neural net's life MUCH easier.
-        obs[0] = (self.agent_pos[0] - ARENA_W / 2) / (ARENA_W / 2)
-        obs[1] = (self.agent_pos[1] - ARENA_H / 2) / (ARENA_H / 2)
-        obs[2] = self.agent_vel[0] / AGENT_SPEED
-        obs[3] = self.agent_vel[1] / AGENT_SPEED
-
-        # Sort projectiles by distance to agent (closest first).
-        if len(self.projectiles) > 0:
-            dists = [
-                np.linalg.norm(p["pos"] - self.agent_pos)
-                for p in self.projectiles
-            ]
-            order = np.argsort(dists)
-            # Take up to MAX_PROJECTILES of the closest ones
-            for slot, idx in enumerate(order[:MAX_PROJECTILES]):
-                p = self.projectiles[idx]
-                # Egocentric: positions are RELATIVE to the agent.
-                rel = p["pos"] - self.agent_pos
-                offset = 4 + slot * 4
-                obs[offset + 0] = rel[0] / (ARENA_W / 2)  # normalized relative x
-                obs[offset + 1] = rel[1] / (ARENA_H / 2)  # normalized relative y
-                obs[offset + 2] = p["vel"][0] / PROJECTILE_SPEED  # normalized vx
-                obs[offset + 3] = p["vel"][1] / PROJECTILE_SPEED  # normalized vy
-            # Empty slots stay as zeros. The agent learns "zeros = no projectile here."
-
-        return obs
-
-    # ------------------------------------------------------------------
-    # Gymnasium API: step()
-    # ------------------------------------------------------------------
     def step(self, action):
-        """
-        Advance the world by one timestep given the agent's chosen action.
-        Returns (next_obs, reward, terminated, truncated, info).
-        """
         self.steps += 1
 
-        # --- 1. Move the agent according to its chosen action ---
-        direction = ACTIONS[action]                     # unit vector for this action
-        self.agent_vel = direction * AGENT_SPEED        # remembered for the next obs
-        self.agent_pos += self.agent_vel
+        direction = ACTIONS[action]
+        self.agent_vel = direction * AGENT_SPEED
+        new_pos = self.agent_pos + self.agent_vel
 
-        # Keep the agent inside the arena (clip to walls).
-        self.agent_pos[0] = np.clip(self.agent_pos[0], AGENT_RADIUS, ARENA_W - AGENT_RADIUS)
-        self.agent_pos[1] = np.clip(self.agent_pos[1], AGENT_RADIUS, ARENA_H - AGENT_RADIUS)
+        # Spherical containment: project back onto the inner sphere if outside.
+        max_r = self.arena_radius - AGENT_RADIUS
+        norm = float(np.linalg.norm(new_pos))
+        if norm > max_r:
+            new_pos = new_pos * (max_r / norm)
+        self.agent_pos = new_pos.astype(np.float32)
 
-        # --- 2. Move every projectile forward ---
         for p in self.projectiles:
             p["pos"] += p["vel"]
 
-        # --- 3. Remove projectiles that have left the arena ---
-        # (with a bit of margin so they fully exit before disappearing)
-        margin = 50
-        self.projectiles = [
-            p for p in self.projectiles
-            if -margin <= p["pos"][0] <= ARENA_W + margin
-            and -margin <= p["pos"][1] <= ARENA_H + margin
-        ]
+        # Remove projectiles that have left the spawn shell and are still
+        # heading outward (so they can't loop back). Dot product with position
+        # (relative to origin) is positive when moving away from center.
+        keep_outer = self.arena_radius + self.spawn_shell_max
+        kept = []
+        for p in self.projectiles:
+            center_dist = float(np.linalg.norm(p["pos"]))
+            outward = float(np.dot(p["pos"], p["vel"])) > 0.0
+            if center_dist > keep_outer and outward:
+                continue
+            kept.append(p)
+        self.projectiles = kept
 
-        # --- 4. Maybe spawn a new projectile ---
         if self.np_random.random() < SPAWN_PROB:
             self._spawn_projectile()
 
-        # --- 5. Check for collisions (agent vs any projectile) ---
+        # Collision check.
         hit = False
         collision_radius = AGENT_RADIUS + PROJECTILE_RADIUS
         for p in self.projectiles:
-            d = np.linalg.norm(p["pos"] - self.agent_pos)
-            if d < collision_radius:
+            if np.linalg.norm(p["pos"] - self.agent_pos) < collision_radius:
                 hit = True
                 break
 
-        # --- 6. Compute reward, terminated, truncated ---
-        # Reward = +1 per step survived. Death gives 0 (clean, no death penalty).
         reward = 1.0
-        terminated = hit                       # natural end (agent died)
-        truncated = self.steps >= MAX_EPISODE_STEPS  # external time limit
+        terminated = hit
+        truncated = self.steps >= MAX_EPISODE_STEPS
 
         return self._get_obs(), reward, terminated, truncated, {}
 
     # ------------------------------------------------------------------
-    # Rendering
+    # Helpers
     # ------------------------------------------------------------------
+    def _sample_sphere_direction(self):
+        """Uniform-direction unit vector on the unit sphere (arccos trick)."""
+        theta = self.np_random.uniform(0.0, 2.0 * np.pi)
+        cos_phi = 2.0 * self.np_random.random() - 1.0
+        sin_phi = np.sqrt(max(0.0, 1.0 - cos_phi * cos_phi))
+        return np.array([
+            sin_phi * np.cos(theta),
+            sin_phi * np.sin(theta),
+            cos_phi,
+        ], dtype=np.float32)
+
+    def _sample_projectile_spawn_pos(self):
+        """Uniform on a spherical shell outside the arena. Always valid."""
+        direction = self._sample_sphere_direction()
+        shell = self.np_random.uniform(self.spawn_shell_min, self.spawn_shell_max)
+        radius = self.arena_radius + shell
+        return (radius * direction).astype(np.float32)
+
+    def _spawn_projectile(self):
+        """Spawn one projectile on the outer shell, aimed near the agent."""
+        spawn_pos = self._sample_projectile_spawn_pos()
+
+        # Aim at a random point inside a ball of radius AIM_RADIUS around the
+        # agent (uniform-in-ball via direction * r * cbrt(uniform)).
+        direction = self._sample_sphere_direction()
+        r = AIM_RADIUS * (self.np_random.random() ** (1.0 / 3.0))
+        target = self.agent_pos + r * direction
+
+        delta = target - spawn_pos
+        norm = float(np.linalg.norm(delta)) + 1e-8
+        vel = (delta / norm) * PROJECTILE_SPEED
+
+        self.projectiles.append({
+            "pos": spawn_pos,
+            "vel": vel.astype(np.float32),
+        })
+
+    def _get_obs(self):
+        """Egocentric obs: agent state + K closest *visible* projectiles."""
+        obs = np.zeros(6 + MAX_PROJECTILES * 6, dtype=np.float32)
+
+        R = self.arena_radius
+        obs[0] = self.agent_pos[0] / R
+        obs[1] = self.agent_pos[1] / R
+        obs[2] = self.agent_pos[2] / R
+        obs[3] = self.agent_vel[0] / AGENT_SPEED
+        obs[4] = self.agent_vel[1] / AGENT_SPEED
+        obs[5] = self.agent_vel[2] / AGENT_SPEED
+
+        if self.projectiles:
+            visible = []
+            for p in self.projectiles:
+                d = float(np.linalg.norm(p["pos"] - self.agent_pos))
+                if d <= self.perception_radius:
+                    visible.append((d, p))
+            visible.sort(key=lambda dp: dp[0])
+            for slot, (_d, p) in enumerate(visible[:MAX_PROJECTILES]):
+                rel = p["pos"] - self.agent_pos
+                offset = 6 + slot * 6
+                obs[offset + 0] = rel[0] / R
+                obs[offset + 1] = rel[1] / R
+                obs[offset + 2] = rel[2] / R
+                obs[offset + 3] = p["vel"][0] / PROJECTILE_SPEED
+                obs[offset + 4] = p["vel"][1] / PROJECTILE_SPEED
+                obs[offset + 5] = p["vel"][2] / PROJECTILE_SPEED
+
+        return obs
+
+    # ------------------------------------------------------------------
+    # Rendering — perspective camera orbiting the origin, drawing a sphere
+    # wireframe arena with a floor grid for depth cues.
+    # ------------------------------------------------------------------
+    SCREEN_W = 800
+    SCREEN_H = 600
+    FOV_DEG = 55.0
+
+    DEFAULT_AZIMUTH   = 0.27
+    DEFAULT_ELEVATION = 0.30
+    DEFAULT_DISTANCE  = 1000
+
+    KEY_AZ_SPEED    = 0.025
+    KEY_EL_SPEED    = 0.020
+    MOUSE_AZ_SENS   = 0.006
+    MOUSE_EL_SENS   = 0.006
+    WHEEL_ZOOM_IN   = 0.90
+    WHEEL_ZOOM_OUT  = 1.10
+    CAMERA_DIST_MIN = 200
+    CAMERA_DIST_MAX = 4000
+    CAMERA_EL_MIN   = -1.4
+    CAMERA_EL_MAX   =  1.4
+
+    SPEED_LEVELS = (1, 2, 4, 8, 16)
+
     def poll_close_event(self):
-        """Return True if the user requested the render window to close."""
         if self.render_mode != "human" or self._screen is None:
             return self.closed_by_user
-
         import pygame
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.closed_by_user = True
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self.closed_by_user = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.closed_by_user = True
+                elif event.key == pygame.K_r:
+                    self._reset_camera()
+                elif event.key in (pygame.K_PLUS, pygame.K_EQUALS):
+                    self._speed_index = min(
+                        self._speed_index + 1, len(self.SPEED_LEVELS) - 1
+                    )
+                elif event.key == pygame.K_MINUS:
+                    self._speed_index = max(self._speed_index - 1, 0)
+                elif pygame.K_1 <= event.key <= pygame.K_5:
+                    self._speed_index = min(
+                        event.key - pygame.K_1, len(self.SPEED_LEVELS) - 1
+                    )
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:
+                    self.camera_distance *= self.WHEEL_ZOOM_IN
+                elif event.button == 5:
+                    self.camera_distance *= self.WHEEL_ZOOM_OUT
+            elif event.type == pygame.MOUSEMOTION:
+                if event.buttons[0]:
+                    dx, dy = event.rel
+                    self.camera_azimuth   -= dx * self.MOUSE_AZ_SENS
+                    self.camera_elevation += dy * self.MOUSE_EL_SENS
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:  self.camera_azimuth   -= self.KEY_AZ_SPEED
+        if keys[pygame.K_RIGHT]: self.camera_azimuth   += self.KEY_AZ_SPEED
+        if keys[pygame.K_UP]:    self.camera_elevation += self.KEY_EL_SPEED
+        if keys[pygame.K_DOWN]:  self.camera_elevation -= self.KEY_EL_SPEED
+
+        self.camera_elevation = max(
+            self.CAMERA_EL_MIN, min(self.CAMERA_EL_MAX, self.camera_elevation)
+        )
+        self.camera_distance = max(
+            self.CAMERA_DIST_MIN, min(self.CAMERA_DIST_MAX, self.camera_distance)
+        )
         return self.closed_by_user
 
+    def _reset_camera(self):
+        self.camera_azimuth   = self.DEFAULT_AZIMUTH
+        self.camera_elevation = self.DEFAULT_ELEVATION
+        self.camera_distance  = self.DEFAULT_DISTANCE
+
+    def _compute_camera_basis(self):
+        """Camera orbits the origin. Same spherical convention as the cube env,
+        just with center=(0,0,0)."""
+        center = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        az = float(self.camera_azimuth)
+        el = float(self.camera_elevation)
+        d  = float(self.camera_distance)
+        r_h = d * np.cos(el)
+        offset = np.array([
+             r_h * np.sin(az),
+            -d   * np.sin(el),
+            -r_h * np.cos(az),
+        ], dtype=np.float32)
+        self.camera_pos = center + offset
+
+        forward = -offset / (np.linalg.norm(offset) + 1e-8)
+        world_up = np.array([0.0, -1.0, 0.0], dtype=np.float32)
+        right = np.cross(forward, world_up)
+        right = right / (np.linalg.norm(right) + 1e-8)
+        up = np.cross(right, forward)
+        up = up / (np.linalg.norm(up) + 1e-8)
+        self.camera_right = right
+        self.camera_up = up
+        self.camera_forward = forward
+        self.focal_length = (self.SCREEN_W / 2.0) / np.tan(
+            np.radians(self.FOV_DEG) / 2.0
+        )
+        self.near_plane = 1.0
+
+    def _project(self, world_point):
+        v = np.asarray(world_point, dtype=np.float32) - self.camera_pos
+        x_view = float(np.dot(v, self.camera_right))
+        y_view = float(np.dot(v, self.camera_up))
+        z_view = float(np.dot(v, self.camera_forward))
+        if z_view <= self.near_plane:
+            return None
+        sx = (x_view * self.focal_length / z_view) + self.SCREEN_W / 2.0
+        sy = -(y_view * self.focal_length / z_view) + self.SCREEN_H / 2.0
+        return sx, sy, z_view
+
+    def _project_radius(self, depth, world_radius):
+        return max(1, int(world_radius * self.focal_length / max(depth, 1.0)))
+
+    @property
+    def _floor_y(self):
+        """Floor is the equatorial plane *just below* the sphere (y=+R since
+        in this convention world y is "down")."""
+        return float(self.arena_radius)
+
+    def _draw_floor_grid(self, divisions=8):
+        """Subtle gridlines on the y=+R plane so depth is readable."""
+        import pygame
+        col = (40, 45, 70)
+        half = self.arena_radius
+        for i in range(divisions + 1):
+            z = -half + 2 * half * i / divisions
+            a = self._project(np.array([-half, self._floor_y, z], dtype=np.float32))
+            b = self._project(np.array([ half, self._floor_y, z], dtype=np.float32))
+            if a and b:
+                pygame.draw.aaline(self._screen, col, (a[0], a[1]), (b[0], b[1]))
+        for i in range(divisions + 1):
+            x = -half + 2 * half * i / divisions
+            a = self._project(np.array([x, self._floor_y, -half], dtype=np.float32))
+            b = self._project(np.array([x, self._floor_y,  half], dtype=np.float32))
+            if a and b:
+                pygame.draw.aaline(self._screen, col, (a[0], a[1]), (b[0], b[1]))
+
+    def _draw_circle_3d(self, basis_u, basis_v, segments=32):
+        """Draw a great-circle of radius=arena_radius in the plane spanned by
+        (basis_u, basis_v), centered at origin. Depth-fade like the box edges."""
+        import pygame
+        R = self.arena_radius
+        prev_proj = None
+        prev_depth = None
+        # Close the loop by going one past 2π.
+        for i in range(segments + 1):
+            t = 2.0 * np.pi * i / segments
+            pt = (R * np.cos(t)) * basis_u + (R * np.sin(t)) * basis_v
+            proj = self._project(pt)
+            if prev_proj is not None and proj is not None:
+                avg = (prev_depth + proj[2]) * 0.5
+                # Tune fade to the smaller scene size.
+                t_fade = max(0.0, min(1.0, (avg - 300.0) / 1200.0))
+                bright = int(160 - 100 * t_fade)
+                col = (bright, bright, min(255, bright + 25))
+                pygame.draw.aaline(
+                    self._screen, col, (prev_proj[0], prev_proj[1]),
+                    (proj[0], proj[1]),
+                )
+            prev_proj = proj
+            prev_depth = proj[2] if proj is not None else None
+
+    def _draw_circle_3d_at_height(self, y, r, segments=32):
+        """Draw a horizontal (constant-y) circle of radius r at height y."""
+        import pygame
+        prev_proj = None
+        prev_depth = None
+        for i in range(segments + 1):
+            t = 2.0 * np.pi * i / segments
+            pt = np.array([r * np.cos(t), y, r * np.sin(t)], dtype=np.float32)
+            proj = self._project(pt)
+            if prev_proj is not None and proj is not None:
+                avg = (prev_depth + proj[2]) * 0.5
+                t_fade = max(0.0, min(1.0, (avg - 300.0) / 1200.0))
+                bright = int(160 - 100 * t_fade)
+                col = (bright, bright, min(255, bright + 25))
+                pygame.draw.aaline(
+                    self._screen, col, (prev_proj[0], prev_proj[1]),
+                    (proj[0], proj[1]),
+                )
+            prev_proj = proj
+            prev_depth = proj[2] if proj is not None else None
+
+    def _draw_arena_sphere(self, latitudes=5, longitudes=6, segments=40):
+        """Wireframe sphere: a few latitude rings + a few great circles
+        through the y-axis. Same depth-fade scheme as the cube env."""
+        R = self.arena_radius
+        # Latitude rings (excluding poles).
+        for i in range(1, latitudes):
+            y = -R + 2.0 * R * i / latitudes
+            r_at_y = np.sqrt(max(0.0, R * R - y * y))
+            self._draw_circle_3d_at_height(y, r_at_y, segments=segments)
+        # Great circles through the vertical (y) axis.
+        for i in range(longitudes):
+            phi = np.pi * i / longitudes  # 0..π is enough (the other half is the same circle)
+            u = np.array([np.cos(phi), 0.0, np.sin(phi)], dtype=np.float32)
+            v = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+            self._draw_circle_3d(u, v, segments=segments)
+
+    def _draw_objects(self):
+        import pygame
+        try:
+            import pygame.gfxdraw as gfx
+            have_gfx = True
+        except ImportError:
+            have_gfx = False
+
+        raw = [(self.agent_pos, AGENT_RADIUS, (60, 220, 255), (200, 245, 255))]
+        for p in self.projectiles:
+            raw.append((p["pos"], PROJECTILE_RADIUS, (255, 80, 80), (255, 190, 190)))
+
+        items = []
+        for pos, wr, fill, outline in raw:
+            proj = self._project(pos)
+            if proj is None:
+                continue
+            items.append((proj, pos, wr, fill, outline))
+
+        items.sort(key=lambda it: -it[0][2])
+
+        # Floor shadows.
+        for (sx, sy, d), pos, wr, _fill, _outline in items:
+            shadow_world = np.array(
+                [pos[0], self._floor_y, pos[2]], dtype=np.float32
+            )
+            sp = self._project(shadow_world)
+            if sp is None:
+                continue
+            ssx, ssy, sd = sp
+            height_above = max(0.0, self._floor_y - pos[1])
+            atten = max(0.25, 1.0 - height_above / (2.0 * self.arena_radius))
+            sr = max(2, int(wr * 0.9 * self.focal_length * atten / sd))
+            color = (10, 12, 22)
+            if have_gfx:
+                gfx.filled_circle(self._screen, int(ssx), int(ssy), sr, color)
+            else:
+                pygame.draw.circle(self._screen, color, (int(ssx), int(ssy)), sr)
+
+        for (sx, sy, d), _pos, wr, fill, outline in items:
+            r = self._project_radius(d, wr)
+            if have_gfx:
+                gfx.filled_circle(self._screen, int(sx), int(sy), r, fill)
+                gfx.aacircle(self._screen, int(sx), int(sy), r, outline)
+            else:
+                pygame.draw.circle(self._screen, fill, (int(sx), int(sy)), r)
+                pygame.draw.circle(self._screen, outline, (int(sx), int(sy)), r, 1)
+
+    def _draw_hud(self):
+        import pygame
+        if not hasattr(self, "_hud_font") or self._hud_font is None:
+            pygame.font.init()
+            self._hud_font  = pygame.font.SysFont(None, 22)
+            self._help_font = pygame.font.SysFont(None, 18)
+
+        speed = self.SPEED_LEVELS[self._speed_index]
+        status = self._hud_font.render(
+            f"step {self.steps}/{MAX_EPISODE_STEPS}   "
+            f"proj {len(self.projectiles)}   "
+            f"speed {speed}x",
+            True, (180, 200, 220),
+        )
+        self._screen.blit(status, (10, 8))
+
+        if self.render_mode == "human":
+            help_line = self._help_font.render(
+                "drag = orbit   wheel = zoom   arrows = orbit   "
+                "1-5 = speed   +/- = step speed   R = reset view   ESC = quit",
+                True, (110, 130, 160),
+            )
+            self._screen.blit(help_line, (10, self.SCREEN_H - 22))
+
     def render(self):
-        """Draw the arena with pygame. Lazy-init the window on first call."""
         if self.render_mode is None:
             return None
 
         import pygame
+
         if self._screen is None:
             pygame.init()
             if self.render_mode == "human":
                 pygame.display.init()
-                self._screen = pygame.display.set_mode((ARENA_W, ARENA_H))
-                pygame.display.set_caption("DodgeEnv")
-            else:  # rgb_array
-                self._screen = pygame.Surface((ARENA_W, ARENA_H))
+                self._screen = pygame.display.set_mode((self.SCREEN_W, self.SCREEN_H))
+                pygame.display.set_caption("DodgeEnv (perspective)")
+            else:
+                self._screen = pygame.Surface((self.SCREEN_W, self.SCREEN_H))
             self._clock = pygame.time.Clock()
+            self._hud_font = None
 
-        # Background
-        self._screen.fill((20, 20, 30))  # near-black with a hint of blue
-
-        # Agent (cyan circle)
-        pygame.draw.circle(
-            self._screen, (0, 200, 255),
-            (int(self.agent_pos[0]), int(self.agent_pos[1])),
-            AGENT_RADIUS
-        )
-
-        # Projectiles (red circles)
-        for p in self.projectiles:
-            pygame.draw.circle(
-                self._screen, (255, 80, 80),
-                (int(p["pos"][0]), int(p["pos"][1])),
-                PROJECTILE_RADIUS
-            )
+        self._compute_camera_basis()
+        self._screen.fill((14, 16, 28))
+        self._draw_floor_grid()
+        self._draw_arena_sphere()
+        self._draw_objects()
+        self._draw_hud()
 
         if self.render_mode == "human":
-            # Drain events. If the user closed the window or pressed ESC,
-            # set self.closed_by_user so the caller can break out of its
-            # loop cleanly (instead of the script hanging).
             self.poll_close_event()
             pygame.display.flip()
-            self._clock.tick(self.metadata["render_fps"])
+            target_fps = self.metadata["render_fps"] * self.SPEED_LEVELS[self._speed_index]
+            self._clock.tick(target_fps)
             return None
         else:
-            # rgb_array: return a numpy array of the rendered frame
             arr = pygame.surfarray.array3d(self._screen)
             return np.transpose(arr, (1, 0, 2))
 
@@ -333,3 +572,4 @@ class DodgeEnv(gym.Env):
                 pygame.display.quit()
             pygame.quit()
             self._screen = None
+            self._hud_font = None

@@ -2,18 +2,18 @@
 Sanity check: run DodgeEnv with a random agent for a few episodes.
 This is also our baseline. Anything we train must beat this.
 
-Pick the env with --env {2d, 3d}. With more actions in 3D (27 vs 9), a random
-agent has more ways to do nothing useful — the 3D baseline is usually weaker.
+The env has 27 discrete actions, so a random agent has many ways to do
+nothing useful — beating this bar is a real signal of learning.
 """
 
 import argparse
 import numpy as np
 
-from env_factory import make_env, ENV_NAMES
+from dodge_env import DodgeEnv
 
 
-def run_random_agent(env_name="2d", num_episodes=20, render=False):
-    env = make_env(env_name, render_mode="human" if render else None)
+def run_random_agent(num_episodes=20, render=False):
+    env = DodgeEnv(render_mode="human" if render else None)
     episode_lengths = []
     episode_rewards = []
 
@@ -48,7 +48,7 @@ def run_random_agent(env_name="2d", num_episodes=20, render=False):
     env.close()
     lengths = np.array(episode_lengths)
     rewards = np.array(episode_rewards)
-    print(f"\n--- Summary over {num_episodes} episodes (env={env_name}) ---")
+    print(f"\n--- Summary over {num_episodes} episodes ---")
     print(f"Mean steps:   {lengths.mean():.1f}  (std {lengths.std():.1f})")
     print(f"Mean reward:  {rewards.mean():.1f}")
     print(f"Min / Max:    {lengths.min()} / {lengths.max()}")
@@ -58,10 +58,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--env", choices=list(ENV_NAMES), default="2d",
-                        help="which env to baseline.")
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument("--render", action="store_true",
                         help="open a window during the baseline run (slow).")
     args = parser.parse_args()
-    run_random_agent(env_name=args.env, num_episodes=args.episodes, render=args.render)
+    run_random_agent(num_episodes=args.episodes, render=args.render)

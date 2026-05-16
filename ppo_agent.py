@@ -12,10 +12,10 @@ Reads top-to-bottom:
 CLI cheatsheet (see also README.md):
   python3 ppo_agent.py                       # fresh training, no window
   python3 ppo_agent.py --render              # fresh training + live window (slow)
-  python3 ppo_agent.py --resume              # continue from ppo_dodge.pt
+  python3 ppo_agent.py --resume              # continue from checkpoints/ppo_dodge.pt
   python3 ppo_agent.py --steps 1_000_000     # longer run
-  python3 ppo_agent.py --curriculum easy     # easier spawn distance (280..400)
-  Ctrl-C or close the window -> graceful save to ppo_dodge.pt.
+  python3 ppo_agent.py --curriculum easy     # easier spawn shell
+  Ctrl-C or close the window -> graceful save to checkpoints/ppo_dodge.pt.
 """
 
 import os
@@ -27,7 +27,16 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 
-from env_factory import make_env, env_defaults, ENV_NAMES
+from dodge_env import (
+    DodgeEnv,
+    CURRICULUM_PRESETS,
+    CHECKPOINT_DIR,
+    CHECKPOINT_PATH,
+    BEST_CHECKPOINT_PATH,
+    DEFAULT_GIF_PATH,
+    SPAWN_DISTANCE_MIN,
+    SPAWN_DISTANCE_MAX,
+)
 
 
 # ============================================================
@@ -75,9 +84,8 @@ HIDDEN_DIM       = 64
 BATCH_SIZE       = NUM_STEPS                   # one env, so batch == rollout length
 MINIBATCH_SIZE   = BATCH_SIZE // NUM_MINIBATCHES
 
-# Checkpoint paths are NOT module-level constants anymore — they're per-env
-# (see env_factory.env_defaults). Use that helper everywhere instead of a
-# hard-coded path. This keeps 2D and 3D runs from clobbering each other.
+# Checkpoint paths live in dodge_env.py (CHECKPOINT_PATH / BEST_CHECKPOINT_PATH)
+# so every script sees the same canonical location (checkpoints/).
 CHECKPOINT_INTERVAL  = 10        # save every N updates (so progress survives crashes/Ctrl-C)
 MIN_EPISODES_FOR_BEST = 10       # need at least this many finished episodes in
                                  # the window before "best mean" is meaningful
@@ -138,9 +146,9 @@ def save_checkpoint(
     best_mean_len=None,
     spawn_distance_min=None,
     spawn_distance_max=None,
-    env_name=None,
 ):
     """Persist enough state to resume training later."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     torch.save(
         {
             "model_state_dict": agent.state_dict(),
@@ -149,7 +157,6 @@ def save_checkpoint(
             "best_mean_len": None if best_mean_len is None else float(best_mean_len),
             "spawn_distance_min": spawn_distance_min,
             "spawn_distance_max": spawn_distance_max,
-            "env_name": env_name,
             "obs_dim": agent.obs_dim,
             "n_actions": agent.n_actions,
             "hidden_dim": agent.hidden_dim,
@@ -169,7 +176,7 @@ def load_agent(path, device="cpu"):
     return agent
 
 
-def auto_eval_and_gif(agent, env_name, n_episodes=20, gif_seed=7,
+def auto_eval_and_gif(agent, n_episodes=20, gif_seed=7,
                       gif_path=None,
                       spawn_distance_min=None,
                       spawn_distance_max=None):
@@ -183,26 +190,22 @@ def auto_eval_and_gif(agent, env_name, n_episodes=20, gif_seed=7,
     Deferred import to dodge the circular dependency on watch_agent.
     """
     from watch_agent import evaluate, make_gif
-    smin_d, smax_d, _presets, _ckpt, best_path = env_defaults(env_name)
-    smin = smin_d if spawn_distance_min is None else spawn_distance_min
-    smax = smax_d if spawn_distance_max is None else spawn_distance_max
+    smin = SPAWN_DISTANCE_MIN if spawn_distance_min is None else spawn_distance_min
+    smax = SPAWN_DISTANCE_MAX if spawn_distance_max is None else spawn_distance_max
     if gif_path is None:
-        # Default GIF filename: 2D keeps trained_agent.gif (backward compat),
-        # 3D gets a distinct file so a 2D run's gif isn't clobbered.
-        gif_path = "trained_agent.gif" if env_name == "2d" else f"trained_agent_{env_name}.gif"
+        gif_path = DEFAULT_GIF_PATH
 
     eval_agent = agent
     eval_source = "latest (in-memory weights)"
-    if os.path.exists(best_path):
+    if os.path.exists(BEST_CHECKPOINT_PATH):
         try:
-            eval_agent = load_agent(best_path)
-            eval_source = best_path
+            eval_agent = load_agent(BEST_CHECKPOINT_PATH)
+            eval_source = BEST_CHECKPOINT_PATH
         except Exception as e:
-            print(f"Could not load {best_path} ({e}); falling back to in-memory latest.")
+            print(f"Could not load {BEST_CHECKPOINT_PATH} ({e}); falling back to in-memory latest.")
     print(f"\n=== Auto-eval (deterministic, source: {eval_source}) ===")
     evaluate(
         eval_agent,
-        env_name=env_name,
         num_episodes=n_episodes,
         spawn_distance_min=smin,
         spawn_distance_max=smax,
@@ -211,7 +214,6 @@ def auto_eval_and_gif(agent, env_name, n_episodes=20, gif_seed=7,
     try:
         make_gif(
             eval_agent,
-            env_name=env_name,
             out_path=gif_path,
             seed=gif_seed,
             deterministic=True,
@@ -226,7 +228,7 @@ def auto_eval_and_gif(agent, env_name, n_episodes=20, gif_seed=7,
 # ============================================================
 # Training
 # ============================================================
-def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
+def train(total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
           resume_path=None, verbose=True,
           spawn_distance_min=None,
           spawn_distance_max=None):
@@ -238,16 +240,15 @@ def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
     # CPU is plenty for a tiny MLP — and avoids MPS overhead on small batches.
     device = torch.device("cpu")
 
-    # Per-env defaults: spawn distances, curriculum presets, checkpoint paths.
-    smin_d, smax_d, _presets, checkpoint_path, best_checkpoint_path = env_defaults(env_name)
     if spawn_distance_min is None:
-        spawn_distance_min = smin_d
+        spawn_distance_min = SPAWN_DISTANCE_MIN
     if spawn_distance_max is None:
-        spawn_distance_max = smax_d
+        spawn_distance_max = SPAWN_DISTANCE_MAX
+    checkpoint_path = CHECKPOINT_PATH
+    best_checkpoint_path = BEST_CHECKPOINT_PATH
 
     render_mode = "human" if render else None
-    env = make_env(
-        env_name,
+    env = DodgeEnv(
         render_mode=render_mode,
         spawn_distance_min=spawn_distance_min,
         spawn_distance_max=spawn_distance_max,
@@ -322,8 +323,8 @@ def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
         print("Close the window or press ESC (or Ctrl-C) to stop and save.\n")
 
     print(f"Will run {num_updates} updates of {NUM_STEPS} steps = {num_updates * NUM_STEPS} total steps")
-    print(f"Env: {env_name} | obs_dim {obs_dim} | n_actions {n_actions}")
-    print(f"Spawn distance: {spawn_distance_min:.0f}..{spawn_distance_max:.0f}")
+    print(f"Env: DodgeEnv | obs_dim {obs_dim} | n_actions {n_actions}")
+    print(f"Spawn shell: {spawn_distance_min:.0f}..{spawn_distance_max:.0f} outside R={env.arena_radius:.0f}")
     print(f"Checkpoint every {CHECKPOINT_INTERVAL} updates -> {checkpoint_path}\n")
 
     try:
@@ -497,8 +498,7 @@ def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
                                 path=best_checkpoint_path,
                                 best_mean_len=best_mean_len,
                                 spawn_distance_min=spawn_distance_min,
-                                spawn_distance_max=spawn_distance_max,
-                                env_name=env_name)
+                                spawn_distance_max=spawn_distance_max)
                 print(f"   ^ new best mean_ep_len {best_mean_len:.1f} "
                       f"(saved -> {best_checkpoint_path})")
 
@@ -511,7 +511,6 @@ def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
                     path=checkpoint_path,
                     spawn_distance_min=spawn_distance_min,
                     spawn_distance_max=spawn_distance_max,
-                    env_name=env_name,
                 )
 
     except KeyboardInterrupt:
@@ -527,7 +526,6 @@ def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
             path=checkpoint_path,
             spawn_distance_min=spawn_distance_min,
             spawn_distance_max=spawn_distance_max,
-            env_name=env_name,
         )
         print(f"\nSaved checkpoint to {checkpoint_path} (global_step = {global_step})")
         env.close()
@@ -538,11 +536,8 @@ def train(env_name="2d", total_timesteps=TOTAL_TIMESTEPS, seed=0, render=False,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Train PPO on DodgeEnv (2D or 3D).",
+        description="Train PPO on DodgeEnv (3D spherical arena).",
     )
-    parser.add_argument("--env", choices=list(ENV_NAMES), default="2d",
-                        help="which env to train on. 2d (9 actions, 24/36-dim obs) "
-                             "or 3d (27 actions, 54-dim obs).")
     parser.add_argument("--steps", type=int, default=TOTAL_TIMESTEPS,
                         help="total env steps to train for in this session")
     parser.add_argument("--seed", type=int, default=0,
@@ -553,8 +548,7 @@ if __name__ == "__main__":
                              "train headless and run watch_agent.py separately.")
     parser.add_argument("--resume", nargs="?", const="auto", default=None,
                         help="continue training from an existing checkpoint. "
-                             "`--resume` loads the env's default latest checkpoint "
-                             "(e.g. ppo_dodge.pt for 2D, ppo_dodge_3d.pt for 3D). "
+                             f"`--resume` loads {CHECKPOINT_PATH}. "
                              "`--resume path/to/file.pt` loads a specific file.")
     parser.add_argument("--no-auto-eval", action="store_true",
                         help="skip the post-training eval + GIF generation.")
@@ -564,27 +558,25 @@ if __name__ == "__main__":
                         help="seed used for the post-training GIF episode.")
     parser.add_argument(
         "--curriculum",
-        choices=["target", "easy"],
+        choices=list(CURRICULUM_PRESETS.keys()),
         default="target",
-        help="spawn-distance preset. target=220..320, easy=280..400.",
+        help="spawn-shell preset (distance OUTSIDE the arena radius).",
     )
     parser.add_argument(
         "--spawn-distance-min",
         type=float,
         default=None,
-        help="override curriculum preset minimum projectile spawn distance.",
+        help="override curriculum preset minimum spawn-shell distance.",
     )
     parser.add_argument(
         "--spawn-distance-max",
         type=float,
         default=None,
-        help="override curriculum preset maximum projectile spawn distance.",
+        help="override curriculum preset maximum spawn-shell distance.",
     )
     args = parser.parse_args()
 
-    # Resolve env-specific defaults.
-    _smin_d, _smax_d, presets, latest_ckpt, _best_ckpt = env_defaults(args.env)
-    preset_min, preset_max = presets[args.curriculum]
+    preset_min, preset_max = CURRICULUM_PRESETS[args.curriculum]
     spawn_distance_min = (
         args.spawn_distance_min if args.spawn_distance_min is not None else preset_min
     )
@@ -592,19 +584,17 @@ if __name__ == "__main__":
         args.spawn_distance_max if args.spawn_distance_max is not None else preset_max
     )
 
-    # `--resume` with no path means "use this env's default latest checkpoint".
+    # `--resume` with no path means "use the canonical latest checkpoint".
     resume_path = args.resume
     if resume_path == "auto":
-        resume_path = latest_ckpt
+        resume_path = CHECKPOINT_PATH
 
-    agent = train(env_name=args.env,
-                  total_timesteps=args.steps, seed=args.seed,
+    agent = train(total_timesteps=args.steps, seed=args.seed,
                   render=args.render, resume_path=resume_path,
                   spawn_distance_min=spawn_distance_min,
                   spawn_distance_max=spawn_distance_max)
     if not args.no_auto_eval:
         auto_eval_and_gif(agent,
-                          env_name=args.env,
                           n_episodes=args.eval_episodes,
                           gif_seed=args.gif_seed,
                           spawn_distance_min=spawn_distance_min,
