@@ -23,7 +23,7 @@ start here.
 | `GAMMA` | How much the agent cares about future survival. | Default `0.99`. | Lower values make the agent more short-sighted. |
 | `GAE_LAMBDA` | Smooths advantage estimates. | Default `0.95`. | Standard PPO value; don't tune first. |
 | `CLIP_COEF` | Limits how much the policy can change in one update. | Default `0.2`. | If `clipfrac` is always huge, reduce LR before touching this. |
-| `ENT_COEF` | Exploration pressure. | Default `0.005`. Higher = more random/exploratory. | If argmax eval trails sampled-training mean by >15%, a polish stage with `ENT_COEF=0.003` is the canonical next experiment. |
+| `ENT_COEF` | Exploration pressure. | Default `0.001` (was `0.005`; lowered after a polish stage where the high-entropy policy was learning "be random" rather than committing to a strategy). Higher = more random/exploratory. | If argmax eval trails sampled-training mean by >15%, the polish recipe is `--resume` with `ENT_COEF` halved. Note: in this env the gap can be 40%+ even after polishing, because the reward landscape itself favors near-uniform policies. |
 | `VF_COEF` | How much critic/value loss matters in total loss. | Default `0.5`. | Standard PPO value; don't tune first. |
 | `MAX_GRAD_NORM` | Caps gradient size. | Default `0.5`. | Safety rail against unstable updates. |
 | `HIDDEN_DIM` | Neural net hidden layer width. | Default `64`. | Bigger isn't automatically better for this small env. |
@@ -39,15 +39,17 @@ start here.
 | `AGENT_RADIUS` | Size of the player sphere. | `15` world units. | Bigger agent is easier to hit. |
 | `PROJECTILE_RADIUS` | Size of each projectile. | `5`. | Bigger projectile is harder. |
 | `AGENT_SPEED` | How far the agent moves per step. | `5.0`. | Faster agent is easier. |
-| `PROJECTILE_SPEED` | How far projectiles move per step. | `4.0`. | Faster projectiles are harder. |
+| `PROJECTILE_SPEED` | How far projectiles move per step. | `6.0` (greater than `AGENT_SPEED` so an agent can't outrun a chasing projectile in a straight line). | Less than `AGENT_SPEED` enables boundary-sliding exploits. |
 | `MAX_PROJECTILES` | How many *closest visible* projectiles the obs includes. | `8`, so obs = `6 + 8*6 = 54` floats. | Changing this breaks old checkpoints because obs size changes. |
 | `MAX_EPISODE_STEPS` | Max length of one episode. | `1000`. | Not total training length. Only caps one play. |
-| `SPAWN_PROB` | Chance of spawning one projectile each step. | Default `0.06` (~60 attempts per 1000-step episode). | Higher = denser danger. |
-| `AIM_RADIUS` | How close to the agent each projectile aims. | `100`. | Smaller = more surgical and harder; larger = more spray-like and easier. |
+| `SPAWN_PROB` | Chance of spawning one projectile each step. | `0.06` (~60 attempts per 1000-step episode). | Higher = denser danger. |
+| `AIM_RADIUS` | Radius of the ball around the predicted impact point that the projectile actually aims into. | `100`. | Smaller = more surgical and harder; larger = more spray-like and easier. |
 | `SPAWN_DISTANCE_MIN/MAX` | Shell thickness *outside* `ARENA_RADIUS` where projectiles spawn. | Target: `50..200`. Easy: `100..300`. | The closer the shell, the less reaction time. |
 | `PERCEPTION_RADIUS` | Beyond this distance, projectiles are zeroed out of the obs. | Default `200`. | Smaller = harder (agent flies blind on distant threats). |
+| `RANDOMIZE_FRAME` | Per-episode random rotation applied to the agent's obs (world → agent) and inverted on actions (agent → world). | `True`. | When `False`, PPO can learn world-axis-aligned policies (e.g. "+x is safe"). With `True`, world axes carry no signal. |
+| `predictive_aim` (constructor kwarg, default `True`) | Aim mode for `_spawn_projectile`. When `True`, projectiles aim at `agent_pos + agent_vel * t_to_impact` (clipped to the containment sphere). When `False`, projectiles aim at the agent's *current* position. | The honest investigation in this repo's README ran the journey from `False` (slide-camping emerges) to `True` (slide is punished). | The predictive-aim math assumes constant velocity; it is fooled by rapid velocity changes (which is why the trained PPO policy settles into a near-random walk). |
 | `CURRICULUM_PRESETS` | Named difficulty presets used by `--curriculum`. | `target = 50..200`, `easy = 100..300`. | Prefer this over hand-editing constants. |
-| `ACTIONS` | The 27 choices the policy can output. | every (dx, dy, dz) with each axis in `{-1, 0, +1}`. Index 13 = stay still. | Diagonals are normalized so they aren't faster than axial moves. |
+| `ACTIONS` | The 27 choices the policy can output, *in the agent's egocentric frame*. | every (dx, dy, dz) with each axis in `{-1, 0, +1}`. Index 13 = stay still. | Diagonals are normalized so they aren't faster than axial moves. Under `RANDOMIZE_FRAME=True`, the same action index maps to a different world direction each episode. |
 
 ### Command-line knobs
 
@@ -158,6 +160,39 @@ PPO's defining trick: don't let the policy change too much in one update.
 | **`HIDDEN_DIM`** | Width of the MLP hidden layers. 64 is plenty for the current 54-dim observation. |
 | **`NUM_MINIBATCHES`** | How many minibatches we split each rollout into. Bigger minibatches = lower variance, fewer updates. |
 | **`UPDATE_EPOCHS`** | How many times we pass over each rollout. Too many → overfit to that rollout, policy moves too far. |
+
+---
+
+## 6a. Env mechanics worth understanding before reading the logs
+
+Two env features are load-bearing for interpreting the trained policy and
+they aren't standard PPO vocabulary:
+
+**Per-episode frame randomization.** At `reset()`, the env samples a
+uniform random rotation `R_ep` from SO(3). Observations are rotated WORLD
+→ AGENT via `R_ep.T` before being returned, and actions are rotated AGENT
+→ WORLD via `R_ep` before being applied. The agent therefore operates in a
+randomly-oriented egocentric frame each episode. Env dynamics are
+unchanged. The point: without this, PPO can learn "+x is safe" and lock
+to absolute world axes. With it, the world's coordinate system carries no
+signal.
+
+**Predictive aim with boundary clipping.** Projectiles solve a quadratic
+for the impact time `t` assuming the agent keeps its current velocity,
+then aim at the predicted position (plus the usual AIM_RADIUS jitter). If
+the predicted point is outside the containment sphere, it gets clipped
+back. This is what punishes constant-velocity (slide) policies and what
+makes random walking the dominant strategy: a constantly-changing
+velocity defeats the predictor, while any predictable trajectory gets
+shot exactly at where it's going.
+
+The two together are what define the *current* env. The "before"
+half of the README's title GIF shows what happens without them — a slide
+on the boundary is genuinely effective because a stationary aim point
+can't lead a moving target. The "after" half shows what happens with
+them — the trained policy collapses to "be random" because that's the
+only strategy that beats prediction without committing to a catchable
+pattern.
 
 ---
 

@@ -69,14 +69,13 @@ ANNEAL_LR        = False        # linearly decay LR to 0 over training.
 GAMMA            = 0.99         # discount factor
 GAE_LAMBDA       = 0.95         # GAE smoothing
 CLIP_COEF        = 0.2          # PPO clip range
-ENT_COEF         = 0.005        # entropy bonus weight (encourages exploration).
-                                # Tried 0.002 as a polish-stage value and it
-                                # did NOT improve over 0.005 in 3D (peak
-                                # rolling-mean briefly hit 674 but 30-ep
-                                # deterministic eval came in at 573.7 vs the
-                                # 0.005 baseline's 587.0 on the same seeds).
-                                # See README "What we learned from 3D
-                                # training" for the full story.
+ENT_COEF         = 0.001        # entropy bonus weight (encourages exploration).
+                                # Lowered from 0.005 for polish-stage on the
+                                # predictive-aim env: first 1M run with 0.005
+                                # plateaued at entropy ~3.0 (near-uniform) and
+                                # learned "be random" rather than reactive
+                                # dodging. Lowering to 0.001 forces the policy
+                                # to commit to a state-dependent strategy.
 VF_COEF          = 0.5          # value loss weight
 MAX_GRAD_NORM    = 0.5          # global grad clip
 HIDDEN_DIM       = 64

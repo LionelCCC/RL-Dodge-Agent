@@ -113,7 +113,7 @@ def watch_live(agent, episodes, deterministic, seed,
         env.close()
 
 
-def evaluate(agent, num_episodes=20,
+def evaluate(agent, num_episodes=20, deterministic=True,
              spawn_distance_min=None, spawn_distance_max=None):
     smin, smax = _resolve_spawn(spawn_distance_min, spawn_distance_max)
     env = DodgeEnv(render_mode=None,
@@ -121,12 +121,13 @@ def evaluate(agent, num_episodes=20,
     lengths = []
     try:
         for ep in range(num_episodes):
-            steps, _, _ = run_episode(env, agent, deterministic=True, seed=ep)
+            steps, _, _ = run_episode(env, agent, deterministic=deterministic, seed=ep)
             lengths.append(steps)
     finally:
         env.close()
     lengths = np.array(lengths)
-    print(f"Eval over {num_episodes} episodes: "
+    mode = "deterministic" if deterministic else "stochastic"
+    print(f"Eval over {num_episodes} episodes ({mode}): "
           f"mean={lengths.mean():.1f}  std={lengths.std():.1f}  "
           f"min={lengths.min()}  max={lengths.max()}")
     return lengths
@@ -192,6 +193,7 @@ if __name__ == "__main__":
     if args.mode == "eval":
         evaluate(
             agent, num_episodes=args.episodes,
+            deterministic=deterministic,
             spawn_distance_min=spawn_distance_min,
             spawn_distance_max=spawn_distance_max,
         )

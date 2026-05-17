@@ -2,8 +2,7 @@
 DodgeEnv: 3D dodge-the-projectiles env with a spherical arena.
 
   - Arena is a sphere of radius ARENA_RADIUS, centered at the origin.
-    Agent and projectiles live in centered coords (origin = arena center),
-    so obs normalization is just `pos / ARENA_RADIUS` on every axis.
+    Agent and projectiles live in centered coords (origin = arena center).
   - Projectiles spawn on a shell *outside* the arena (distance from origin
     = ARENA_RADIUS + uniform(SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX)).
     Always valid by construction — no rejection, no fallback.
@@ -15,6 +14,17 @@ DodgeEnv: 3D dodge-the-projectiles env with a spherical arena.
 
 Action space: 27 discrete (every (dx, dy, dz) with each in {-1, 0, +1}).
 Observation: 6 (agent xyzvxvyvz) + MAX_PROJECTILES * 6 (closest visible).
+
+**Per-episode frame randomization.** Env dynamics are rotationally symmetric
+(uniform spawn shell, isotropic aim), but absolute-axis observations and a
+world-aligned action grid let a policy learn "+x is safe" anyway — which is
+how the first trained policy ended up sliding along the +x+y+z octant
+boundary. At each `reset()` we sample a uniform rotation matrix R_ep:
+  - observations are rotated WORLD -> AGENT frame via R_ep.T,
+  - actions are rotated AGENT -> WORLD frame via R_ep before applying.
+The agent therefore operates in a randomly-oriented egocentric frame each
+episode. World axes carry no signal; only "where the threats are right now
+relative to me" does. Disable with `randomize_frame=False` for ablations.
 
 Note on `spawn_distance_min/max`: these are SHELL distance (distance OUTSIDE
 the sphere wall), not absolute distance from the agent.
@@ -31,7 +41,7 @@ ARENA_RADIUS = 200
 AGENT_RADIUS = 15
 PROJECTILE_RADIUS = 5
 AGENT_SPEED = 5.0
-PROJECTILE_SPEED = 4.0
+PROJECTILE_SPEED = 6.0
 MAX_PROJECTILES = 8
 MAX_EPISODE_STEPS = 1000
 SPAWN_PROB = 0.06
@@ -44,6 +54,9 @@ CURRICULUM_PRESETS = {
     "target": (SPAWN_DISTANCE_MIN, SPAWN_DISTANCE_MAX),
     "easy": (100, 300),
 }
+
+# Per-episode frame randomization. See module docstring.
+RANDOMIZE_FRAME = True
 
 # ---- Output-path conventions -------------------------------------------------
 # Centralizing these here keeps caller scripts from each owning their own
@@ -87,6 +100,9 @@ class DodgeEnv(gym.Env):
         spawn_distance_min=SPAWN_DISTANCE_MIN,
         spawn_distance_max=SPAWN_DISTANCE_MAX,
         perception_radius=PERCEPTION_RADIUS,
+        randomize_frame=RANDOMIZE_FRAME,
+        predictive_aim=True,
+        projectile_speed=None,
     ):
         super().__init__()
         self.render_mode = render_mode
@@ -94,6 +110,12 @@ class DodgeEnv(gym.Env):
         self.spawn_shell_min = float(spawn_distance_min)
         self.spawn_shell_max = float(spawn_distance_max)
         self.perception_radius = float(perception_radius)
+        self.randomize_frame = bool(randomize_frame)
+        self.predictive_aim = bool(predictive_aim)
+        self.projectile_speed = (
+            float(PROJECTILE_SPEED) if projectile_speed is None
+            else float(projectile_speed)
+        )
         if self.arena_radius <= AGENT_RADIUS:
             raise ValueError("arena_radius must be larger than AGENT_RADIUS")
         if self.spawn_shell_min < 0:
@@ -113,6 +135,10 @@ class DodgeEnv(gym.Env):
         self.agent_vel = None
         self.projectiles = None
         self.steps = 0
+        # frame_rotation: WORLD <- AGENT. To put a world vector into the
+        # agent frame, multiply by frame_rotation.T. To send an agent-frame
+        # action out into the world, multiply by frame_rotation.
+        self.frame_rotation = np.eye(3, dtype=np.float32)
 
         self._screen = None
         self._clock = None
@@ -132,13 +158,39 @@ class DodgeEnv(gym.Env):
         self.agent_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)
         self.projectiles = []
         self.steps = 0
+        if self.randomize_frame:
+            self.frame_rotation = self._sample_uniform_rotation()
+        else:
+            self.frame_rotation = np.eye(3, dtype=np.float32)
         return self._get_obs(), {}
+
+    def _sample_uniform_rotation(self):
+        """Uniform random rotation matrix (Haar measure on SO(3)).
+
+        Recipe: QR-decompose a random Gaussian 3x3 matrix; the orthogonal
+        factor Q is uniform on O(3). Fix the sign so det(Q)=+1, giving SO(3).
+        """
+        m = self.np_random.standard_normal((3, 3)).astype(np.float32)
+        q, r = np.linalg.qr(m)
+        # Multiply each column of Q by sign of the matching diagonal of R
+        # so that R has positive diagonal — this is the Mezzadri (2007)
+        # trick to make Q uniformly distributed.
+        d = np.sign(np.diag(r))
+        d[d == 0] = 1.0
+        q = q * d
+        # Ensure proper rotation, not reflection.
+        if np.linalg.det(q) < 0:
+            q[:, 0] = -q[:, 0]
+        return q.astype(np.float32)
 
     def step(self, action):
         self.steps += 1
 
-        direction = ACTIONS[action]
-        self.agent_vel = direction * AGENT_SPEED
+        # Action vector is in the AGENT frame; rotate it to WORLD before
+        # applying. frame_rotation maps WORLD <- AGENT, so frame_rotation @ v.
+        agent_frame_dir = ACTIONS[action]
+        world_dir = self.frame_rotation @ agent_frame_dir
+        self.agent_vel = (world_dir * AGENT_SPEED).astype(np.float32)
         new_pos = self.agent_pos + self.agent_vel
 
         # Spherical containment: project back onto the inner sphere if outside.
@@ -202,19 +254,67 @@ class DodgeEnv(gym.Env):
         radius = self.arena_radius + shell
         return (radius * direction).astype(np.float32)
 
-    def _spawn_projectile(self):
-        """Spawn one projectile on the outer shell, aimed near the agent."""
-        spawn_pos = self._sample_projectile_spawn_pos()
+    def _predict_agent_pos_at_impact(self, spawn_pos, speed):
+        """Where will the agent be when a projectile fired from `spawn_pos`
+        at `speed` catches up, assuming the agent keeps its current velocity?
 
-        # Aim at a random point inside a ball of radius AIM_RADIUS around the
-        # agent (uniform-in-ball via direction * r * cbrt(uniform)).
+        Solves `||spawn - (pos + vel*t)|| = speed * t` for the positive root.
+        Since PROJECTILE_SPEED > AGENT_SPEED in this env, a real positive
+        intercept always exists. Falls back to current pos in the degenerate
+        cases (no roots, both roots non-positive).
+        """
+        s = spawn_pos
+        p = self.agent_pos
+        v = self.agent_vel
+        vv = float(np.dot(v, v))
+        diff_sp = p - s                                 # (p - s)
+        A = speed * speed - vv                          # > 0 when speed > ||v||
+        B = 2.0 * float(np.dot(s - p, v))
+        C = -float(np.dot(diff_sp, diff_sp))            # < 0 unless spawn==pos
+        if A <= 1e-8:
+            return p
+        disc = B * B - 4.0 * A * C
+        if disc < 0:
+            return p
+        sqrt_disc = float(np.sqrt(disc))
+        t = (-B + sqrt_disc) / (2.0 * A)                # larger root
+        if t <= 0:
+            t_alt = (-B - sqrt_disc) / (2.0 * A)
+            if t_alt <= 0:
+                return p
+            t = t_alt
+        return (p + v * t).astype(np.float32)
+
+    def _spawn_projectile(self):
+        """Spawn one projectile on the outer shell, aimed near the agent.
+
+        Two aim modes:
+          - predictive (default): solve for the agent's position at impact
+            time assuming constant velocity, then clip to the containment
+            sphere so a boundary-sliding agent doesn't get a free pass.
+          - ballistic (predictive_aim=False): aim at the agent's CURRENT
+            position. This is the legacy mode that produced boundary
+            camping; it's available so the journey GIF can show it.
+
+        In both modes, AIM_RADIUS jitter is preserved.
+        """
+        spawn_pos = self._sample_projectile_spawn_pos()
+        if self.predictive_aim:
+            aim_center = self._predict_agent_pos_at_impact(spawn_pos, self.projectile_speed)
+            max_r = self.arena_radius - AGENT_RADIUS
+            ac_norm = float(np.linalg.norm(aim_center))
+            if ac_norm > max_r:
+                aim_center = aim_center * (max_r / ac_norm)
+        else:
+            aim_center = self.agent_pos
+
         direction = self._sample_sphere_direction()
         r = AIM_RADIUS * (self.np_random.random() ** (1.0 / 3.0))
-        target = self.agent_pos + r * direction
+        target = aim_center + r * direction
 
         delta = target - spawn_pos
         norm = float(np.linalg.norm(delta)) + 1e-8
-        vel = (delta / norm) * PROJECTILE_SPEED
+        vel = (delta / norm) * self.projectile_speed
 
         self.projectiles.append({
             "pos": spawn_pos,
@@ -222,16 +322,24 @@ class DodgeEnv(gym.Env):
         })
 
     def _get_obs(self):
-        """Egocentric obs: agent state + K closest *visible* projectiles."""
+        """Egocentric obs: agent state + K closest *visible* projectiles.
+
+        All vectors are rotated from world frame into the agent's per-episode
+        frame via frame_rotation.T. With randomize_frame=True the agent
+        therefore never sees the absolute world axes.
+        """
         obs = np.zeros(6 + MAX_PROJECTILES * 6, dtype=np.float32)
 
         R = self.arena_radius
-        obs[0] = self.agent_pos[0] / R
-        obs[1] = self.agent_pos[1] / R
-        obs[2] = self.agent_pos[2] / R
-        obs[3] = self.agent_vel[0] / AGENT_SPEED
-        obs[4] = self.agent_vel[1] / AGENT_SPEED
-        obs[5] = self.agent_vel[2] / AGENT_SPEED
+        RT = self.frame_rotation.T
+        pos_agent = RT @ self.agent_pos
+        vel_agent = RT @ self.agent_vel
+        obs[0] = pos_agent[0] / R
+        obs[1] = pos_agent[1] / R
+        obs[2] = pos_agent[2] / R
+        obs[3] = vel_agent[0] / AGENT_SPEED
+        obs[4] = vel_agent[1] / AGENT_SPEED
+        obs[5] = vel_agent[2] / AGENT_SPEED
 
         if self.projectiles:
             visible = []
@@ -241,14 +349,16 @@ class DodgeEnv(gym.Env):
                     visible.append((d, p))
             visible.sort(key=lambda dp: dp[0])
             for slot, (_d, p) in enumerate(visible[:MAX_PROJECTILES]):
-                rel = p["pos"] - self.agent_pos
+                rel_world = p["pos"] - self.agent_pos
+                rel_agent = RT @ rel_world
+                vel_agent_p = RT @ p["vel"]
                 offset = 6 + slot * 6
-                obs[offset + 0] = rel[0] / R
-                obs[offset + 1] = rel[1] / R
-                obs[offset + 2] = rel[2] / R
-                obs[offset + 3] = p["vel"][0] / PROJECTILE_SPEED
-                obs[offset + 4] = p["vel"][1] / PROJECTILE_SPEED
-                obs[offset + 5] = p["vel"][2] / PROJECTILE_SPEED
+                obs[offset + 0] = rel_agent[0] / R
+                obs[offset + 1] = rel_agent[1] / R
+                obs[offset + 2] = rel_agent[2] / R
+                obs[offset + 3] = vel_agent_p[0] / PROJECTILE_SPEED
+                obs[offset + 4] = vel_agent_p[1] / PROJECTILE_SPEED
+                obs[offset + 5] = vel_agent_p[2] / PROJECTILE_SPEED
 
         return obs
 
@@ -331,8 +441,14 @@ class DodgeEnv(gym.Env):
         self.camera_distance  = self.DEFAULT_DISTANCE
 
     def _compute_camera_basis(self):
-        """Camera orbits the origin. Same spherical convention as the cube env,
-        just with center=(0,0,0)."""
+        """Build the orthonormal camera basis + position from the current
+        orbit state. Cheap — runs every render frame, since the user may be
+        orbiting interactively.
+
+        Spherical convention: azimuth=0 looks along +z, azimuth>0 rotates
+        toward +x; elevation=0 is level, elevation>0 lifts the camera above
+        the scene (looking down).
+        """
         center = np.array([0.0, 0.0, 0.0], dtype=np.float32)
         az = float(self.camera_azimuth)
         el = float(self.camera_elevation)
@@ -445,7 +561,7 @@ class DodgeEnv(gym.Env):
 
     def _draw_arena_sphere(self, latitudes=5, longitudes=6, segments=40):
         """Wireframe sphere: a few latitude rings + a few great circles
-        through the y-axis. Same depth-fade scheme as the cube env."""
+        through the y-axis. Depth-fade so far edges are dimmer than near ones."""
         R = self.arena_radius
         # Latitude rings (excluding poles).
         for i in range(1, latitudes):

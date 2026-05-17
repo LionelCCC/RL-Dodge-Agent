@@ -1,0 +1,9 @@
+# Pinned to the versions used to develop and produce the README's results.
+# Python 3.9.6 was the development interpreter; 3.9+ should work, 3.10+ likely
+# also fine. See README.md "Setup" for a venv-based install recipe.
+
+gymnasium==1.1.1
+pygame==2.6.1
+torch==2.8.0
+numpy==2.0.2
+pillow==11.1.0
